@@ -2,41 +2,15 @@
 
 Custom n8n nodes for ARK (Agentic Runtime for Kubernetes) - compose AI agents, teams, and quality gates in visual workflows.
 
-## Features
+## Quick Start
 
-### Implemented ✅
-
-- **ARK Agent Node** - Execute agents with dynamic resource locators
-- **ARK Model Node** - Manage AI models from workflow automation
-- **ARK Team Node** - Orchestrate multi-agent teams
-- **ARK Evaluation Node** - Quality scoring with configurable dimensions
-  - Direct evaluation (input/output pairs)
-  - Query evaluation (assess historical interactions)
-- **Dynamic Resource Discovery** - Agents, models, evaluators populate from ARK API
-- **Comprehensive Tests** - 76 tests with >89% coverage
-
-### Coming Soon 🚧
-
-**Additional Nodes**:
-- [ ] **ARK Query Node** - List, filter, and replay historical agent executions
-- [ ] **ARK API Node** - Generic ARK API calls for advanced workflows
-- [ ] **MCP Server Node** - Access Model Context Protocol servers
-
-**Node Enhancements**:
-- [ ] **Stricter Authentication** - RBAC support, service account credentials
-- [ ] **Batch Operations** - Process multiple agents/evaluations in parallel
-- [ ] **Workflow Templates** - Pre-built patterns for common use cases
-
-## Prerequisites
+### Prerequisites
 
 - Existing ARK cluster with API endpoint accessible
 - kubectl configured to access your cluster
 - Helm 3.x installed
-- (Optional) DevSpace for local development
 
-## Installation
-
-### Quick Start
+### Installation
 
 Install n8n with ARK custom nodes using Helm:
 
@@ -44,6 +18,49 @@ Install n8n with ARK custom nodes using Helm:
 helm install n8n oci://ghcr.io/skokaina/charts/ark-n8n \
   --set ark.apiUrl=http://ark-api.default.svc.cluster.local:8000 \
   --namespace default
+```
+
+### Access n8n UI
+
+Port forward to access n8n locally:
+
+```bash
+kubectl port-forward svc/ark-n8n 5678:5678 -n default
+```
+
+Open in browser: http://localhost:5678
+
+### Configure ARK API Credentials
+
+1. In n8n UI: **Settings** → **Credentials** → **Add Credential** → **ARK API**
+2. Enter ARK API URL:
+   - In-cluster: `http://ark-api.default.svc.cluster.local:8000`
+   - External: `https://your-ark-api.example.com`
+3. (Optional) Add authentication if ARK is configured with SSO
+
+## Configuration
+
+### Helm Values
+
+Key configuration options in `chart/values.yaml`:
+
+```yaml
+ark:
+  apiUrl: http://ark-api.default.svc.cluster.local:8000  # ARK API endpoint
+
+app:
+  image:
+    repository: ghcr.io/skokaina/ark-n8n
+    tag: latest
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+storage:
+  enabled: true
+  size: 1Gi
+  storageClass: ""  # Use default storage class
 ```
 
 ### Custom Configuration
@@ -75,23 +92,43 @@ helm install n8n oci://ghcr.io/skokaina/charts/ark-n8n \
 
 **Note**: The `httpRoute.origin` header is automatically derived from `N8N_PROTOCOL` and the first hostname if not explicitly set.
 
-### Access n8n UI
+### Environment Variables
 
-Port forward to access n8n locally:
+n8n configuration (set via `app.env` in values.yaml):
 
-```bash
-kubectl port-forward svc/ark-n8n 5678:5678 -n default
-```
+- `N8N_HOST` - Hostname for n8n instance
+- `N8N_PORT` - Port for n8n server (default: 5678)
+- `N8N_PROTOCOL` - http or https
+- `GENERIC_TIMEZONE` - Timezone for executions
 
-Open in browser: http://localhost:5678
+ARK configuration:
 
-### Configure ARK API Credentials
+- `ARK_API_URL` - ARK API endpoint (set via `ark.apiUrl`)
 
-1. In n8n UI: **Settings** → **Credentials** → **Add Credential** → **ARK API**
-2. Enter ARK API URL:
-   - In-cluster: `http://ark-api.default.svc.cluster.local:8000`
-   - External: `https://your-ark-api.example.com`
-3. (Optional) Add authentication if ARK is configured with SSO
+## Features
+
+### Implemented ✅
+
+- **ARK Agent Node** - Execute agents with dynamic resource locators
+- **ARK Model Node** - Manage AI models from workflow automation
+- **ARK Team Node** - Orchestrate multi-agent teams
+- **ARK Evaluation Node** - Quality scoring with configurable dimensions
+  - Direct evaluation (input/output pairs)
+  - Query evaluation (assess historical interactions)
+- **Dynamic Resource Discovery** - Agents, models, evaluators populate from ARK API
+- **Comprehensive Tests** - 76 tests with >89% coverage
+
+### Coming Soon 🚧
+
+**Additional Nodes**:
+- [ ] **ARK Query Node** - List, filter, and replay historical agent executions
+- [ ] **ARK API Node** - Generic ARK API calls for advanced workflows
+- [ ] **MCP Server Node** - Access Model Context Protocol servers
+
+**Node Enhancements**:
+- [ ] **Stricter Authentication** - RBAC support, service account credentials
+- [ ] **Batch Operations** - Process multiple agents/evaluations in parallel
+- [ ] **Workflow Templates** - Pre-built patterns for common use cases
 
 ## Sample Workflows
 
@@ -106,6 +143,30 @@ Import workflows:
 2. Select workflow JSON file
 3. Configure ARK API base URL
 4. Save and execute
+
+## Architecture
+
+This package provides:
+
+1. **Custom n8n Nodes** (TypeScript)
+   - ARK Agent, Model, Team, Evaluation nodes
+   - Dynamic resource loading from ARK API
+   - Type-safe parameter validation
+
+2. **Dockerfile**
+   - Extends official n8n image
+   - Pre-installs ARK custom nodes globally
+   - Configures N8N_CUSTOM_EXTENSIONS
+
+3. **Helm Chart**
+   - Kubernetes deployment for n8n
+   - Persistent storage for workflows
+   - HTTPRoute for ingress (optional)
+
+4. **DevSpace Configuration**
+   - Local development environment
+   - File sync for hot-reload
+   - Port forwarding and logs
 
 ## Development
 
@@ -144,68 +205,6 @@ cd nodes
 npm run lint
 npm run lintfix  # Auto-fix issues
 ```
-
-## Architecture
-
-This package provides:
-
-1. **Custom n8n Nodes** (TypeScript)
-   - ARK Agent, Model, Team, Evaluation nodes
-   - Dynamic resource loading from ARK API
-   - Type-safe parameter validation
-
-2. **Dockerfile**
-   - Extends official n8n image
-   - Pre-installs ARK custom nodes globally
-   - Configures N8N_CUSTOM_EXTENSIONS
-
-3. **Helm Chart**
-   - Kubernetes deployment for n8n
-   - Persistent storage for workflows
-   - HTTPRoute for ingress (optional)
-
-4. **DevSpace Configuration**
-   - Local development environment
-   - File sync for hot-reload
-   - Port forwarding and logs
-
-## Configuration
-
-### Helm Values
-
-Key configuration options in `chart/values.yaml`:
-
-```yaml
-ark:
-  apiUrl: http://ark-api.default.svc.cluster.local:8000  # ARK API endpoint
-
-app:
-  image:
-    repository: ghcr.io/skokaina/ark-n8n
-    tag: latest
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-
-storage:
-  enabled: true
-  size: 1Gi
-  storageClass: ""  # Use default storage class
-```
-
-### Environment Variables
-
-n8n configuration (set via `app.env` in values.yaml):
-
-- `N8N_HOST` - Hostname for n8n instance
-- `N8N_PORT` - Port for n8n server (default: 5678)
-- `N8N_PROTOCOL` - http or https
-- `GENERIC_TIMEZONE` - Timezone for executions
-
-ARK configuration:
-
-- `ARK_API_URL` - ARK API endpoint (set via `ark.apiUrl`)
 
 ## Troubleshooting
 
