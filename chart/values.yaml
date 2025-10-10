@@ -46,7 +46,7 @@ httpRoute:
   hostnames:
     - ark-n8n.default.127.0.0.1.nip.io
   # Origin header for CORS - defaults to protocol://first-hostname if not set
-  origin: ""
+  origin: "ark-n8n.default.127.0.0.1.nip.io"
   rules:
     - backendRefs:
         - name: ark-n8n

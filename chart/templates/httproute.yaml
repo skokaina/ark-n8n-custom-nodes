@@ -14,15 +14,16 @@ spec:
   - {{ . | quote }}
   {{- end }}
   rules:
+  {{- $root := . }}
   {{- range .Values.httpRoute.rules }}
   - filters:
     - type: RequestHeaderModifier
       requestHeaderModifier:
         set:
         - name: Origin
-          value: {{ .Values.httpRoute.origin | default (printf "%s://%s" (.Values.app.env.N8N_PROTOCOL | default "http") (index .Values.httpRoute.hostnames 0)) | quote }}
+          value: {{ $root.Values.httpRoute.origin | default (printf "%s://%s" ($root.Values.app.env.N8N_PROTOCOL | default "http") (index $root.Values.httpRoute.hostnames 0)) | quote }}
         - name: X-Forwarded-Proto
-          value: {{ .Values.app.env.N8N_PROTOCOL | default "http" | quote }}
+          value: {{ $root.Values.app.env.N8N_PROTOCOL | default "http" | quote }}
     backendRefs:
     {{- range .backendRefs }}
     - name: {{ .name }}
