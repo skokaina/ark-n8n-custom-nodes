@@ -5,54 +5,54 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
-} from 'n8n-workflow';
+} from "n8n-workflow";
 
 export class ArkModel implements INodeType {
   description: INodeTypeDescription = {
-    displayName: 'ARK Model',
-    name: 'arkModel',
-    icon: 'file:ark-model.svg',
-    group: ['transform'],
+    displayName: "ARK Model",
+    name: "arkModel",
+    icon: "file:ark-model.svg",
+    group: ["transform"],
     version: 1,
-    description: 'Query ARK models directly',
+    description: "Query ARK models directly",
     defaults: {
-      name: 'ARK Model',
+      name: "ARK Model",
     },
-    inputs: ['main'],
-    outputs: ['main'],
+    inputs: ["main"],
+    outputs: ["main"],
     credentials: [
       {
-        name: 'arkApi',
+        name: "arkApi",
         required: true,
       },
     ],
     properties: [
       {
-        displayName: 'Model',
-        name: 'model',
-        type: 'options',
+        displayName: "Model",
+        name: "model",
+        type: "options",
         typeOptions: {
-          loadOptionsMethod: 'getModels',
+          loadOptionsMethod: "getModels",
         },
-        default: '',
+        default: "",
         required: true,
-        description: 'The ARK model to query',
+        description: "The ARK model to query",
       },
       {
-        displayName: 'Prompt',
-        name: 'prompt',
-        type: 'string',
-        default: '',
+        displayName: "Prompt",
+        name: "prompt",
+        type: "string",
+        default: "",
         required: true,
-        description: 'The prompt text for the model',
-        placeholder: 'What is the capital of France?',
+        description: "The prompt text for the model",
+        placeholder: "What is the capital of France?",
       },
       {
-        displayName: 'Temperature',
-        name: 'temperature',
-        type: 'number',
+        displayName: "Temperature",
+        name: "temperature",
+        type: "number",
         default: 0.7,
-        description: 'Sampling temperature (0.0 to 1.0)',
+        description: "Sampling temperature (0.0 to 1.0)",
         typeOptions: {
           minValue: 0,
           maxValue: 1,
@@ -60,24 +60,26 @@ export class ArkModel implements INodeType {
         },
       },
       {
-        displayName: 'Max Tokens',
-        name: 'maxTokens',
-        type: 'number',
-        default: '',
-        description: 'Maximum number of tokens to generate',
-        placeholder: '100',
+        displayName: "Max Tokens",
+        name: "maxTokens",
+        type: "number",
+        default: "",
+        description: "Maximum number of tokens to generate",
+        placeholder: "100",
       },
     ],
   };
 
   methods = {
     loadOptions: {
-      async getModels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-        const credentials = await this.getCredentials('arkApi');
+      async getModels(
+        this: ILoadOptionsFunctions,
+      ): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials("arkApi");
         const baseUrl = credentials.baseUrl as string;
 
         const response = await this.helpers.request({
-          method: 'GET',
+          method: "GET",
           url: `${baseUrl}/v1/models`,
           json: true,
         });
@@ -93,14 +95,18 @@ export class ArkModel implements INodeType {
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
-    const credentials = await this.getCredentials('arkApi');
+    const credentials = await this.getCredentials("arkApi");
     const baseUrl = credentials.baseUrl as string;
 
     for (let i = 0; i < items.length; i++) {
-      const model = this.getNodeParameter('model', i) as string;
-      const prompt = this.getNodeParameter('prompt', i) as string;
-      const temperature = this.getNodeParameter('temperature', i, 0.7) as number;
-      const maxTokens = this.getNodeParameter('maxTokens', i, '') as number;
+      const model = this.getNodeParameter("model", i) as string;
+      const prompt = this.getNodeParameter("prompt", i) as string;
+      const temperature = this.getNodeParameter(
+        "temperature",
+        i,
+        0.7,
+      ) as number;
+      const maxTokens = this.getNodeParameter("maxTokens", i, "") as number;
 
       const body: any = {
         prompt,
@@ -112,7 +118,7 @@ export class ArkModel implements INodeType {
       }
 
       const response = await this.helpers.request({
-        method: 'POST',
+        method: "POST",
         url: `${baseUrl}/v1/models/${model}/query`,
         body,
         json: true,

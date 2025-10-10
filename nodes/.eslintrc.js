@@ -8,14 +8,13 @@ module.exports = {
   plugins: ['@typescript-eslint', 'prettier'],
   parserOptions: {
     ecmaVersion: 2019,
-    sourceType: 'module',
-    project: './tsconfig.json'
+    sourceType: 'module'
   },
   rules: {
     'prettier/prettier': 'error',
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
   },
-  ignorePatterns: ['dist', 'node_modules', 'coverage', '*.js']
+  ignorePatterns: ['dist', 'node_modules', 'coverage', '*.js', '**/__tests__/**']
 };

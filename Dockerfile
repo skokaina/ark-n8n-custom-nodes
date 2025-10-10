@@ -5,6 +5,7 @@ USER root
 
 # Copy pre-built nodes to temporary location
 COPY nodes/package.json /tmp/n8n-nodes-ark/
+COPY nodes/package-lock.json /tmp/n8n-nodes-ark/
 COPY nodes/dist /tmp/n8n-nodes-ark/dist/
 
 # Install the package globally so n8n can discover it

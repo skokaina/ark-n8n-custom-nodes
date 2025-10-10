@@ -5,291 +5,293 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
-} from 'n8n-workflow';
+} from "n8n-workflow";
 
 export class ArkEvaluation implements INodeType {
   description: INodeTypeDescription = {
-    displayName: 'ARK Evaluation',
-    name: 'arkEvaluation',
-    icon: 'file:ark-evaluation.svg',
-    group: ['transform'],
+    displayName: "ARK Evaluation",
+    name: "arkEvaluation",
+    icon: "file:ark-evaluation.svg",
+    group: ["transform"],
     version: 1,
-    description: 'Create and execute ARK evaluations',
+    description: "Create and execute ARK evaluations",
     defaults: {
-      name: 'ARK Evaluation',
+      name: "ARK Evaluation",
     },
-    inputs: ['main'],
-    outputs: ['main'],
+    inputs: ["main"],
+    outputs: ["main"],
     credentials: [
       {
-        name: 'arkApi',
+        name: "arkApi",
         required: true,
       },
     ],
     properties: [
       {
-        displayName: 'Evaluation Type',
-        name: 'evaluationType',
-        type: 'options',
+        displayName: "Evaluation Type",
+        name: "evaluationType",
+        type: "options",
         options: [
           {
-            name: 'Direct',
-            value: 'direct',
-            description: 'Evaluate input/output directly',
+            name: "Direct",
+            value: "direct",
+            description: "Evaluate input/output directly",
           },
           {
-            name: 'Query',
-            value: 'query',
-            description: 'Evaluate based on existing query',
+            name: "Query",
+            value: "query",
+            description: "Evaluate based on existing query",
           },
         ],
-        default: 'direct',
-        description: 'Type of evaluation to perform',
+        default: "direct",
+        description: "Type of evaluation to perform",
       },
       {
-        displayName: 'Evaluator',
-        name: 'evaluator',
-        type: 'options',
+        displayName: "Evaluator",
+        name: "evaluator",
+        type: "options",
         typeOptions: {
-          loadOptionsMethod: 'getEvaluators',
+          loadOptionsMethod: "getEvaluators",
         },
-        default: '',
+        default: "",
         required: true,
-        description: 'The evaluator to use',
+        description: "The evaluator to use",
       },
       {
-        displayName: 'Input',
-        name: 'input',
-        type: 'string',
-        typeOptions: {
-          rows: 4,
-        },
-        displayOptions: {
-          show: {
-            evaluationType: ['direct'],
-          },
-        },
-        default: '',
-        required: true,
-        description: 'The input to evaluate',
-      },
-      {
-        displayName: 'Output',
-        name: 'output',
-        type: 'string',
+        displayName: "Input",
+        name: "input",
+        type: "string",
         typeOptions: {
           rows: 4,
         },
         displayOptions: {
           show: {
-            evaluationType: ['direct'],
+            evaluationType: ["direct"],
           },
         },
-        default: '',
+        default: "",
         required: true,
-        description: 'The output to evaluate',
+        description: "The input to evaluate",
       },
       {
-        displayName: 'Query',
-        name: 'queryName',
-        type: 'resourceLocator',
-        default: { mode: 'list', value: '' },
+        displayName: "Output",
+        name: "output",
+        type: "string",
+        typeOptions: {
+          rows: 4,
+        },
+        displayOptions: {
+          show: {
+            evaluationType: ["direct"],
+          },
+        },
+        default: "",
+        required: true,
+        description: "The output to evaluate",
+      },
+      {
+        displayName: "Query",
+        name: "queryName",
+        type: "resourceLocator",
+        default: { mode: "list", value: "" },
         required: true,
         displayOptions: {
           show: {
-            evaluationType: ['query'],
+            evaluationType: ["query"],
           },
         },
-        description: 'The query to evaluate',
+        description: "The query to evaluate",
         modes: [
           {
-            displayName: 'From List',
-            name: 'list',
-            type: 'list',
+            displayName: "From List",
+            name: "list",
+            type: "list",
             typeOptions: {
-              searchListMethod: 'searchQueries',
+              searchListMethod: "searchQueries",
               searchable: true,
             },
           },
           {
-            displayName: 'By Name',
-            name: 'name',
-            type: 'string',
-            placeholder: 'e.g. my-query-name',
+            displayName: "By Name",
+            name: "name",
+            type: "string",
+            placeholder: "e.g. my-query-name",
           },
         ],
       },
       {
-        displayName: 'Response Target',
-        name: 'responseTarget',
-        type: 'resourceLocator',
-        default: { mode: 'list', value: '' },
+        displayName: "Response Target",
+        name: "responseTarget",
+        type: "resourceLocator",
+        default: { mode: "list", value: "" },
         required: true,
         displayOptions: {
           show: {
-            evaluationType: ['query'],
+            evaluationType: ["query"],
           },
         },
-        description: 'Which target response to evaluate',
+        description: "Which target response to evaluate",
         modes: [
           {
-            displayName: 'From List',
-            name: 'list',
-            type: 'list',
+            displayName: "From List",
+            name: "list",
+            type: "list",
             typeOptions: {
-              searchListMethod: 'searchQueryTargets',
+              searchListMethod: "searchQueryTargets",
               searchable: true,
             },
           },
           {
-            displayName: 'By Value',
-            name: 'value',
-            type: 'string',
-            placeholder: 'e.g. agent:my-agent',
+            displayName: "By Value",
+            name: "value",
+            type: "string",
+            placeholder: "e.g. agent:my-agent",
           },
         ],
       },
       {
-        displayName: 'Wait for Completion',
-        name: 'wait',
-        type: 'boolean',
+        displayName: "Wait for Completion",
+        name: "wait",
+        type: "boolean",
         default: true,
-        description: 'Whether to wait for evaluation to complete',
+        description: "Whether to wait for evaluation to complete",
       },
       {
-        displayName: 'Timeout',
-        name: 'timeout',
-        type: 'number',
+        displayName: "Timeout",
+        name: "timeout",
+        type: "number",
         default: 300,
         displayOptions: {
           show: {
             wait: [true],
           },
         },
-        description: 'Maximum time to wait for completion (seconds)',
+        description: "Maximum time to wait for completion (seconds)",
       },
       {
-        displayName: 'Advanced Parameters',
-        name: 'advancedParametersSection',
-        type: 'notice',
-        default: '',
+        displayName: "Advanced Parameters",
+        name: "advancedParametersSection",
+        type: "notice",
+        default: "",
         displayOptions: {
           show: {
-            '@version': [1],
+            "@version": [1],
           },
         },
       },
       {
-        displayName: 'Evaluation Scope',
-        name: 'scope',
-        type: 'multiOptions',
+        displayName: "Evaluation Scope",
+        name: "scope",
+        type: "multiOptions",
         options: [
           {
-            name: 'Relevance',
-            value: 'relevance',
+            name: "Relevance",
+            value: "relevance",
           },
           {
-            name: 'Accuracy',
-            value: 'accuracy',
+            name: "Accuracy",
+            value: "accuracy",
           },
           {
-            name: 'Completeness',
-            value: 'completeness',
+            name: "Completeness",
+            value: "completeness",
           },
           {
-            name: 'Conciseness',
-            value: 'conciseness',
+            name: "Conciseness",
+            value: "conciseness",
           },
           {
-            name: 'Clarity',
-            value: 'clarity',
+            name: "Clarity",
+            value: "clarity",
           },
           {
-            name: 'Usefulness',
-            value: 'usefulness',
+            name: "Usefulness",
+            value: "usefulness",
           },
           {
-            name: 'Compliance',
-            value: 'compliance',
+            name: "Compliance",
+            value: "compliance",
           },
           {
-            name: 'Faithfulness',
-            value: 'faithfulness',
+            name: "Faithfulness",
+            value: "faithfulness",
           },
         ],
         default: [],
-        description: 'Evaluation criteria to assess',
+        description: "Evaluation criteria to assess",
       },
       {
-        displayName: 'Minimum Score',
-        name: 'minScore',
-        type: 'number',
+        displayName: "Minimum Score",
+        name: "minScore",
+        type: "number",
         typeOptions: {
           minValue: 0,
           maxValue: 1,
           numberPrecision: 2,
         },
         default: 0.7,
-        description: 'Minimum score threshold (0.0-1.0)',
+        description: "Minimum score threshold (0.0-1.0)",
       },
       {
-        displayName: 'Temperature',
-        name: 'temperature',
-        type: 'number',
+        displayName: "Temperature",
+        name: "temperature",
+        type: "number",
         typeOptions: {
           minValue: 0,
           maxValue: 2,
           numberPrecision: 1,
         },
         default: 0.0,
-        description: 'LLM temperature for evaluation (0.0-2.0)',
+        description: "LLM temperature for evaluation (0.0-2.0)",
       },
       {
-        displayName: 'Max Tokens',
-        name: 'maxTokens',
-        type: 'number',
+        displayName: "Max Tokens",
+        name: "maxTokens",
+        type: "number",
         typeOptions: {
           minValue: 1,
         },
-        default: '',
-        description: 'Maximum tokens for evaluation response',
+        default: "",
+        description: "Maximum tokens for evaluation response",
       },
       {
-        displayName: 'Evaluator Role',
-        name: 'evaluatorRole',
-        type: 'string',
-        default: '',
-        description: 'Custom evaluator role description',
+        displayName: "Evaluator Role",
+        name: "evaluatorRole",
+        type: "string",
+        default: "",
+        description: "Custom evaluator role description",
       },
       {
-        displayName: 'Context',
-        name: 'context',
-        type: 'string',
+        displayName: "Context",
+        name: "context",
+        type: "string",
         typeOptions: {
           rows: 4,
         },
-        default: '',
-        description: 'Additional context for evaluation',
+        default: "",
+        description: "Additional context for evaluation",
       },
       {
-        displayName: 'Evaluation Criteria',
-        name: 'evaluationCriteria',
-        type: 'string',
-        default: '',
-        description: 'Comma-separated list of specific criteria',
+        displayName: "Evaluation Criteria",
+        name: "evaluationCriteria",
+        type: "string",
+        default: "",
+        description: "Comma-separated list of specific criteria",
       },
     ],
   };
 
   methods = {
     loadOptions: {
-      async getEvaluators(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-        const credentials = await this.getCredentials('arkApi');
+      async getEvaluators(
+        this: ILoadOptionsFunctions,
+      ): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials("arkApi");
         const baseUrl = credentials.baseUrl as string;
 
         try {
           const response = await this.helpers.request({
-            method: 'GET',
+            method: "GET",
             url: `${baseUrl}/v1/evaluators`,
             json: true,
           });
@@ -305,12 +307,12 @@ export class ArkEvaluation implements INodeType {
     },
     listSearch: {
       async searchQueries(this: ILoadOptionsFunctions, filter?: string) {
-        const credentials = await this.getCredentials('arkApi');
+        const credentials = await this.getCredentials("arkApi");
         const baseUrl = credentials.baseUrl as string;
 
         try {
           const response = await this.helpers.request({
-            method: 'GET',
+            method: "GET",
             url: `${baseUrl}/v1/queries`,
             json: true,
           });
@@ -320,7 +322,7 @@ export class ArkEvaluation implements INodeType {
           if (filter) {
             const filterLower = filter.toLowerCase();
             items = items.filter((query: any) =>
-              query.name.toLowerCase().includes(filterLower)
+              query.name.toLowerCase().includes(filterLower),
             );
           }
 
@@ -337,13 +339,14 @@ export class ArkEvaluation implements INodeType {
       },
 
       async searchQueryTargets(this: ILoadOptionsFunctions, filter?: string) {
-        const credentials = await this.getCredentials('arkApi');
+        const credentials = await this.getCredentials("arkApi");
         const baseUrl = credentials.baseUrl as string;
-        const queryNameParam = this.getCurrentNodeParameter('queryName') as any;
+        const queryNameParam = this.getCurrentNodeParameter("queryName") as any;
 
-        const queryName = typeof queryNameParam === 'string'
-          ? queryNameParam
-          : queryNameParam?.value || '';
+        const queryName =
+          typeof queryNameParam === "string"
+            ? queryNameParam
+            : queryNameParam?.value || "";
 
         if (!queryName) {
           return { results: [] };
@@ -351,7 +354,7 @@ export class ArkEvaluation implements INodeType {
 
         try {
           const response = await this.helpers.request({
-            method: 'GET',
+            method: "GET",
             url: `${baseUrl}/v1/queries/${encodeURIComponent(queryName)}`,
             json: true,
           });
@@ -361,7 +364,9 @@ export class ArkEvaluation implements INodeType {
           if (filter) {
             const filterLower = filter.toLowerCase();
             targets = targets.filter((target: any) =>
-              `${target.type}:${target.name}`.toLowerCase().includes(filterLower)
+              `${target.type}:${target.name}`
+                .toLowerCase()
+                .includes(filterLower),
             );
           }
 
@@ -381,52 +386,75 @@ export class ArkEvaluation implements INodeType {
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
-    const credentials = await this.getCredentials('arkApi');
+    const credentials = await this.getCredentials("arkApi");
     const baseUrl = credentials.baseUrl as string;
     const token = credentials.token as string;
 
     for (let i = 0; i < items.length; i++) {
-      const evaluationType = this.getNodeParameter('evaluationType', i) as string;
-      const evaluator = this.getNodeParameter('evaluator', i) as string;
-      const wait = this.getNodeParameter('wait', i) as boolean;
-      const timeout = this.getNodeParameter('timeout', i, 300) as number;
+      const evaluationType = this.getNodeParameter(
+        "evaluationType",
+        i,
+      ) as string;
+      const evaluator = this.getNodeParameter("evaluator", i) as string;
+      const wait = this.getNodeParameter("wait", i) as boolean;
+      const timeout = this.getNodeParameter("timeout", i, 300) as number;
 
-      const scope = this.getNodeParameter('scope', i, []) as string[];
-      const minScore = this.getNodeParameter('minScore', i, 0.7) as number;
-      const temperature = this.getNodeParameter('temperature', i, 0.0) as number;
-      const maxTokens = this.getNodeParameter('maxTokens', i, '') as number | string;
-      const evaluatorRole = this.getNodeParameter('evaluatorRole', i, '') as string;
-      const context = this.getNodeParameter('context', i, '') as string;
-      const evaluationCriteria = this.getNodeParameter('evaluationCriteria', i, '') as string;
+      const scope = this.getNodeParameter("scope", i, []) as string[];
+      const minScore = this.getNodeParameter("minScore", i, 0.7) as number;
+      const temperature = this.getNodeParameter(
+        "temperature",
+        i,
+        0.0,
+      ) as number;
+      const maxTokens = this.getNodeParameter("maxTokens", i, "") as
+        | number
+        | string;
+      const evaluatorRole = this.getNodeParameter(
+        "evaluatorRole",
+        i,
+        "",
+      ) as string;
+      const context = this.getNodeParameter("context", i, "") as string;
+      const evaluationCriteria = this.getNodeParameter(
+        "evaluationCriteria",
+        i,
+        "",
+      ) as string;
 
-      const parameters: Array<{name: string, value: string}> = [];
+      const parameters: Array<{ name: string; value: string }> = [];
 
       if (scope.length > 0) {
-        parameters.push({ name: 'scope', value: scope.join(',') });
+        parameters.push({ name: "scope", value: scope.join(",") });
       }
 
-      parameters.push({ name: 'min_score', value: minScore.toString() });
+      parameters.push({ name: "min_score", value: minScore.toString() });
 
       if (temperature !== 0.0) {
-        parameters.push({ name: 'temperature', value: temperature.toString() });
+        parameters.push({ name: "temperature", value: temperature.toString() });
       }
 
-      if (maxTokens && maxTokens !== '') {
-        parameters.push({ name: 'max_tokens', value: maxTokens.toString() });
+      if (maxTokens && maxTokens !== "") {
+        parameters.push({ name: "max_tokens", value: maxTokens.toString() });
       }
 
       if (evaluatorRole) {
-        parameters.push({ name: 'evaluator_role', value: evaluatorRole });
+        parameters.push({ name: "evaluator_role", value: evaluatorRole });
       }
 
       if (context) {
-        parameters.push({ name: 'context', value: context });
+        parameters.push({ name: "context", value: context });
       }
 
       if (evaluationCriteria) {
-        const criteriaList = evaluationCriteria.split(',').map((c: string) => c.trim()).filter((c: string) => c);
+        const criteriaList = evaluationCriteria
+          .split(",")
+          .map((c: string) => c.trim())
+          .filter((c: string) => c);
         if (criteriaList.length > 0) {
-          parameters.push({ name: 'evaluation_criteria', value: criteriaList.join(',') });
+          parameters.push({
+            name: "evaluation_criteria",
+            value: criteriaList.join(","),
+          });
         }
       }
 
@@ -446,22 +474,27 @@ export class ArkEvaluation implements INodeType {
         requestBody.evaluator.parameters = parameters;
       }
 
-      if (evaluationType === 'direct') {
-        const input = this.getNodeParameter('input', i) as string;
-        const output = this.getNodeParameter('output', i) as string;
+      if (evaluationType === "direct") {
+        const input = this.getNodeParameter("input", i) as string;
+        const output = this.getNodeParameter("output", i) as string;
         requestBody.config.input = input;
         requestBody.config.output = output;
-      } else if (evaluationType === 'query') {
-        const queryNameParam = this.getNodeParameter('queryName', i) as any;
-        const responseTargetParam = this.getNodeParameter('responseTarget', i) as any;
+      } else if (evaluationType === "query") {
+        const queryNameParam = this.getNodeParameter("queryName", i) as any;
+        const responseTargetParam = this.getNodeParameter(
+          "responseTarget",
+          i,
+        ) as any;
 
-        const queryName = typeof queryNameParam === 'string'
-          ? queryNameParam
-          : queryNameParam?.value || '';
+        const queryName =
+          typeof queryNameParam === "string"
+            ? queryNameParam
+            : queryNameParam?.value || "";
 
-        const responseTarget = typeof responseTargetParam === 'string'
-          ? responseTargetParam
-          : responseTargetParam?.value || '';
+        const responseTarget =
+          typeof responseTargetParam === "string"
+            ? responseTargetParam
+            : responseTargetParam?.value || "";
 
         requestBody.config.queryRef = {
           name: queryName,
@@ -470,14 +503,14 @@ export class ArkEvaluation implements INodeType {
       }
 
       const headers: any = {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       };
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
       const response = await this.helpers.request({
-        method: 'POST',
+        method: "POST",
         url: `${baseUrl}/v1/evaluations`,
         body: requestBody,
         headers,
@@ -489,9 +522,10 @@ export class ArkEvaluation implements INodeType {
         const startTime = Date.now();
         const maxWaitTime = timeout * 1000;
 
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const statusResponse = await this.helpers.request({
-            method: 'GET',
+            method: "GET",
             url: `${baseUrl}/v1/evaluations/${evaluationName}`,
             headers,
             json: true,
@@ -499,7 +533,7 @@ export class ArkEvaluation implements INodeType {
 
           const phase = statusResponse.status?.phase;
 
-          if (phase === 'done' || phase === 'failed' || phase === 'error') {
+          if (phase === "done" || phase === "failed" || phase === "error") {
             returnData.push({ json: statusResponse });
             break;
           }
