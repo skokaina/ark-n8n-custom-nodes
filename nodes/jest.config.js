@@ -34,6 +34,12 @@ module.exports = {
       functions: 80,
       lines: 80,
       statements: 80
+    },
+    './nodes/ArkEvaluation/**/*.ts': {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
     }
   },
   coverageDirectory: 'coverage',

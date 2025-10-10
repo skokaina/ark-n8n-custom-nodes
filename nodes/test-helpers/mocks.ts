@@ -7,7 +7,11 @@ import {
 
 export function createMockExecuteFunctions(
   inputData: INodeExecutionData[] = [],
-  parameters: Record<string, any> = {}
+  parameters: Record<string, any> = {},
+  credentials: Record<string, any> = {
+    baseUrl: 'http://ark-api.default.svc.cluster.local',
+    token: 'test-token',
+  }
 ): Partial<IExecuteFunctions> {
   return {
     getInputData: () => inputData,
@@ -15,10 +19,7 @@ export function createMockExecuteFunctions(
       return parameters[parameterName];
     },
     getCredentials: async <T extends object>(type: string, itemIndex?: number) => {
-      return {
-        baseUrl: 'http://ark-api.default.svc.cluster.local',
-        token: 'test-token',
-      } as T;
+      return credentials as T;
     },
     helpers: {
       request: jest.fn(),

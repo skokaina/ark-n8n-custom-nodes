@@ -3,7 +3,6 @@ import { IExecuteFunctions, ILoadOptionsFunctions } from "n8n-workflow";
 import {
   createMockExecuteFunctions,
   createMockLoadOptionsFunctions,
-  createMockNodeExecutionData,
 } from "../../../test-helpers/mocks";
 import {
   evaluatorsListFixture,
@@ -392,6 +391,7 @@ describe("ArkEvaluation Node", () => {
       });
     });
   });
+});
 
   describe("Execute Method", () => {
     describe("Direct Evaluation", () => {
@@ -600,9 +600,6 @@ describe("ArkEvaluation Node", () => {
         const parameters = {
           evaluationType: "direct",
           evaluator: "test-evaluator",
-          scope: [],
-          minScore: 0.7,
-          temperature: 0.0,
           input: "test",
           output: "test",
           wait: true,
@@ -626,7 +623,7 @@ describe("ArkEvaluation Node", () => {
           mockFunctions as IExecuteFunctions,
         );
 
-        expect((result[0][0].json.status as any).phase).toBe("failed");
+        expect(result[0][0].json.status.phase).toBe("failed");
       });
 
       it("should poll until evaluation has error status", async () => {
@@ -634,9 +631,6 @@ describe("ArkEvaluation Node", () => {
         const parameters = {
           evaluationType: "direct",
           evaluator: "test-evaluator",
-          scope: [],
-          minScore: 0.7,
-          temperature: 0.0,
           input: "test",
           output: "test",
           wait: true,
@@ -660,7 +654,7 @@ describe("ArkEvaluation Node", () => {
           mockFunctions as IExecuteFunctions,
         );
 
-        expect((result[0][0].json.status as any).phase).toBe("error");
+        expect(result[0][0].json.status.phase).toBe("error");
       });
     });
 
@@ -673,9 +667,6 @@ describe("ArkEvaluation Node", () => {
         const parameters = {
           evaluationType: "direct",
           evaluator: "test-evaluator",
-          scope: [],
-          minScore: 0.7,
-          temperature: 0.0,
           input: "test",
           output: "test",
           wait: false,
