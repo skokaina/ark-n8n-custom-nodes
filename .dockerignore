@@ -1,0 +1,10 @@
+nodes/node_modules
+nodes/coverage
+nodes/.eslintcache
+nodes/**/*.test.ts
+nodes/__tests__
+nodes/test-helpers
+chart/
+icons/
+*.md
+.git

@@ -1,0 +1,58 @@
+app:
+  name: ark-n8n
+  image:
+    repository: ghcr.io/skokaina/ark-n8n
+    pullPolicy: IfNotPresent
+    tag: latest
+
+  port: 5678
+
+  env:
+    N8N_HOST: ark-n8n.default.127.0.0.1.nip.io
+    N8N_PORT: "5678"
+    N8N_PROTOCOL: http
+    N8N_SECURE_COOKIE: "false"
+    N8N_PROXY_HOPS: "1"
+    N8N_EDITOR_BASE_URL: http://ark-n8n.default.127.0.0.1.nip.io:8080
+    WEBHOOK_URL: http://ark-n8n.default.127.0.0.1.nip.io:8080
+    N8N_PUSH_BACKEND: sse
+    GENERIC_TIMEZONE: America/New_York
+    N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+    N8N_RUNNERS_ENABLED: "true"
+
+ark:
+  apiUrl: http://ark-api.default.svc.cluster.local:8000
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+storage:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  mountPath: /home/node/.n8n
+
+httpRoute:
+  enabled: true
+  gateway:
+    name: localhost-gateway
+    namespace: ark-system
+  hostnames:
+    - ark-n8n.default.127.0.0.1.nip.io
+  # Origin header for CORS - defaults to protocol://first-hostname if not set
+  origin: ""
+  rules:
+    - backendRefs:
+        - name: ark-n8n
+          port: 5678
+
+service:
+  type: ClusterIP
+  port: 5678
+  targetPort: 5678

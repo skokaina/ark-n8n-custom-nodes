@@ -1,0 +1,60 @@
+# DevSpace configuration for n8n with ARK custom nodes
+version: v2beta1
+
+images:
+  ark-n8n:
+    image: ark-n8n
+    dockerfile: Dockerfile
+    context: .
+
+pipelines:
+  deploy: |-
+    build_images --all
+    create_deployments --all
+  dev: |-
+    create_deployments --all
+    start_dev --all
+
+deployments:
+  ark-n8n:
+    namespace: default
+    helm:
+      chart:
+        path: ./chart
+      values:
+        app:
+          image:
+            repository: ${runtime.images.ark-n8n.image}
+            tag: ${runtime.images.ark-n8n.tag}
+          # Override resources for local development
+          resources:
+            limits:
+              memory: "1024Mi"
+              cpu: "1000m"
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+        httpRoute:
+          enabled: true
+
+dev:
+  ark-n8n:
+    imageSelector: ark-n8n
+    namespace: default
+    # Stream logs instead of terminal
+    logs:
+      lastLines: 50
+    # Port forwarding for n8n UI
+    ports:
+      - port: "5678:5678"
+    # File synchronization for custom nodes development
+    sync:
+      - path: ./nodes:/tmp/n8n-nodes-ark
+        startContainer: true
+        disableDownload: true
+        uploadExcludeFile: .dockerignore
+        onUpload:
+          restartContainer: true
+    # Enable SSH for IDE integration
+    ssh:
+      enabled: true

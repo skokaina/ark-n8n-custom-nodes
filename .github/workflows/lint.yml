@@ -1,0 +1,34 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: nodes/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd nodes
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          cd nodes
+          npm run lint
+
+      - name: TypeScript compilation check
+        run: |
+          cd nodes
+          npx tsc --noEmit

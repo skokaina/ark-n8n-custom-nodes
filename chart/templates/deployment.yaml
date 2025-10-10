@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.app.name }}
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.app.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.name }}
+    spec:
+      containers:
+      - name: {{ .Values.app.name }}
+        image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
+        imagePullPolicy: {{ .Values.app.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.app.port }}
+          name: http
+        env:
+        {{- range $key, $value := .Values.app.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        - name: ARK_API_URL
+          value: {{ .Values.ark.apiUrl | quote }}
+        volumeMounts:
+        {{- if .Values.storage.enabled }}
+        - name: n8n-data
+          mountPath: {{ .Values.storage.mountPath }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.app.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      {{- if .Values.storage.enabled }}
+      - name: n8n-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.app.name }}-pvc
+      {{- end }}

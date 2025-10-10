@@ -1,0 +1,6 @@
+service: ark-n8n
+description: Low-code workflow automation UI for ARK
+type: web-app
+language: typescript
+framework: n8n
+deployment: kubernetes

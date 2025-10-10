@@ -1,0 +1,381 @@
+{
+  "name": "Smart Customer Support with AI Quality Gates",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b6a47554-41bc-41e5-b2ac-58559043b39f",
+      "name": "Webhook: New Support Ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -880,
+        112
+      ],
+      "webhookId": "customer-support-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ parseFloat($json.status.score) }}",
+              "operation": "largerEqual",
+              "value2": 0.8
+            }
+          ]
+        }
+      },
+      "id": "03fff2bf-af2e-46ac-893f-f6eef3c570cb",
+      "name": "IF: Quality Score >= 0.8",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/ed0ebbea-1920-4553-8b51-4ffb23c0e8b6",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "to",
+              "value": "={{ $('Webhook: New Support Ticket').item.json.body.customer_email }}"
+            },
+            {
+              "name": "subject",
+              "value": "Re: Your Support Request"
+            },
+            {
+              "name": "body",
+              "value": "=Hi {{ $('Webhook: New Support Ticket').item.json.body.customer_name }},\n\n{{ $('ARK Agent: Generate Response').item.json.response }}\n\nBest regards,\nCustomer Support Team"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac3bace2-c7a5-479b-b165-31d921f315e8",
+      "name": "HTTP: Send to Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "shWrv29Tj5MS9tMH",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://webhook.site/ed0ebbea-1920-4553-8b51-4ffb23c0e8b6",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer_email",
+              "value": "={{ $('Webhook: New Support Ticket').item.json.body.customer_email }}"
+            },
+            {
+              "name": "issue",
+              "value": "={{ $('Webhook: New Support Ticket').item.json.body.issue }}"
+            },
+            {
+              "name": "draft_response",
+              "value": "={{ $('ARK Agent: Generate Response').item.json.response }}"
+            },
+            {
+              "name": "quality_score",
+              "value": "={{ $('ARK Evaluation: Check Quality').item.json.status.score }}"
+            },
+            {
+              "name": "evaluation_message",
+              "value": "={{ $('ARK Evaluation: Check Quality').item.json.status.message }}"
+            },
+            {
+              "name": "priority",
+              "value": "high"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e03781d4-ef60-4f27-af05-d519dbe853d1",
+      "name": "HTTP: Add to Review Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        208
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "shWrv29Tj5MS9tMH",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#team",
+          "mode": "name"
+        },
+        "text": "Some text",
+        "otherOptions": {}
+      },
+      "id": "6f596310-57ae-40ca-8e94-07ae0188f6a4",
+      "name": "Slack: Notify Team (Success)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        0
+      ],
+      "webhookId": "efdd728a-41b7-44fa-a41e-1848b8c7f115",
+      "credentials": {
+        "slackApi": {
+          "id": "ER6fYLbpQbo99YXV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#supervisors",
+          "mode": "name"
+        },
+        "text": "=⚠️ Response needs review\n\nCustomer: {{ $('Webhook: New Support Ticket').item.json.body.customer_name }}\nQuality Score: {{ $('ARK Evaluation: Check Quality').item.json.status.score }}\nIssue: {{ $('Webhook: New Support Ticket').item.json.body.issue }}\n\nReason: Quality score below threshold (0.8)",
+        "otherOptions": {}
+      },
+      "id": "8052dda5-5dd4-4550-aff4-b1305e3e82c9",
+      "name": "Slack: Alert Supervisor (Review)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        224,
+        208
+      ],
+      "webhookId": "a4e434c5-45af-4b19-b48f-29212ec94c16",
+      "credentials": {
+        "slackApi": {
+          "id": "ER6fYLbpQbo99YXV",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"Response sent to customer\", \"quality_score\": $('ARK Evaluation: Check Quality').item.json.status.score } }}",
+        "options": {}
+      },
+      "id": "a2f6f11a-38ea-4201-b017-ee8c079fc9f8",
+      "name": "Respond: Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"queued_for_review\", \"message\": \"Response requires human review\", \"quality_score\": $('ARK Evaluation: Check Quality').item.json.status.score } }}",
+        "options": {}
+      },
+      "id": "e8f4d1aa-25de-49ca-8119-4dea5bb3da55",
+      "name": "Respond: Queued for Review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "support-agent",
+        "input": "=Customer Issue: {{ $json.body.issue }}  \nCustomer Context: \n- Name: {{ $json.body.customer_name }} \n- Email: {{ $json.body.customer_email }} \n- Account Type: {{ $json.body.account_type }} \n- Priority: {{ $json.body.priority }}"
+      },
+      "type": "CUSTOM.arkAgent",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        112
+      ],
+      "id": "db2375c2-3d33-442b-86d4-fa5cdf8f61b0",
+      "name": "ARK Agent: Generate Response",
+      "credentials": {
+        "arkApi": {
+          "id": "uOy5Xm82JVsslZME",
+          "name": "ARK account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "evaluator": "support-quality-evaluator",
+        "input": "{{ $('Webhook: New Support Ticket').item.json.body.issue }}",
+        "output": "{{ $('ARK Agent: Generate Response').item.json.response }}",
+        "timeout": 30,
+        "scope": [
+          "relevance",
+          "accuracy",
+          "clarity",
+          "usefulness",
+          "compliance"
+        ],
+        "minScore": 0.8,
+        "temperature": 0.1,
+        "maxTokens": {},
+        "evaluatorRole": "This is a customer support response that will be sent directly to the customer. Ensure it meets professional standards and provides helpful, accurate information"
+      },
+      "type": "CUSTOM.arkEvaluation",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        112
+      ],
+      "id": "c6b50458-cdf7-4129-9578-6e7ac5fa00e3",
+      "name": "ARK Evaluation: Check Quality",
+      "credentials": {
+        "arkApi": {
+          "id": "uOy5Xm82JVsslZME",
+          "name": "ARK account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "IF: Quality Score >= 0.8": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Send to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP: Add to Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Send to Customer": {
+      "main": [
+        [
+          {
+            "node": "Slack: Notify Team (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Add to Review Queue": {
+      "main": [
+        [
+          {
+            "node": "Slack: Alert Supervisor (Review)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Notify Team (Success)": {
+      "main": [
+        [
+          {
+            "node": "Respond: Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Alert Supervisor (Review)": {
+      "main": [
+        [
+          {
+            "node": "Respond: Queued for Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: New Support Ticket": {
+      "main": [
+        [
+          {
+            "node": "ARK Agent: Generate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Agent: Generate Response": {
+      "main": [
+        [
+          {
+            "node": "ARK Evaluation: Check Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Evaluation: Check Quality": {
+      "main": [
+        [
+          {
+            "node": "IF: Quality Score >= 0.8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "19d5f264-85b0-48d6-bf25-18ff8ea3d9bb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "699bbfd44a376093823900837716dc1142fd275a74aa3154da29c9da6ecb427f"
+  },
+  "id": "cF05gWcXAu1j0NOa",
+  "tags": []
+}

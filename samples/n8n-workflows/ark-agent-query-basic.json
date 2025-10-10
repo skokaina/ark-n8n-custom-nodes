@@ -1,0 +1,132 @@
+{
+  "name": "ARK Agent Query - Basic",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://ark-api.default.svc.cluster.local/v1/agents",
+        "options": {}
+      },
+      "id": "list-agents",
+      "name": "List ARK Agents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const agents = $input.item.json.items;\nconst agentNames = agents.map(a => a.name);\n\nreturn {\n  json: {\n    agents: agents,\n    agentNames: agentNames,\n    count: agents.length,\n    selectedAgent: agentNames[0] || 'default-agent'\n  }\n};"
+      },
+      "id": "extract-agents",
+      "name": "Extract Agent Names",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ark-api.default.svc.cluster.local/v1/agents/{{ $json.selectedAgent }}/execute",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "Hello, what can you help me with?"
+            },
+            {
+              "name": "wait",
+              "value": true
+            },
+            {
+              "name": "timeout",
+              "value": "60s"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 65000
+        }
+      },
+      "id": "execute-agent",
+      "name": "Execute Agent Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const queryResult = $input.item.json;\n\nreturn {\n  json: {\n    queryName: queryResult.queryName,\n    agentInput: queryResult.input,\n    agentResponse: queryResult.response,\n    status: queryResult.status,\n    duration: queryResult.duration,\n    error: queryResult.error,\n    success: queryResult.status === 'completed',\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "List ARK Agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List ARK Agents": {
+      "main": [
+        [
+          {
+            "node": "Extract Agent Names",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Agent Names": {
+      "main": [
+        [
+          {
+            "node": "Execute Agent Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Agent Query": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

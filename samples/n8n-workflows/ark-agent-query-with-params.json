@@ -1,0 +1,210 @@
+{
+  "name": "ARK Agent Query - With Parameters",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "ark-agent-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const body = $input.item.json.body || {};\nconst query = $input.item.json.query || {};\n\nreturn {\n  json: {\n    agentName: body.agent || query.agent || 'default-agent',\n    userInput: body.input || query.input || 'Hello',\n    timeout: body.timeout || query.timeout || '60s',\n    sessionId: body.sessionId || query.sessionId || null\n  }\n};"
+      },
+      "id": "parse-input",
+      "name": "Parse Input Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ark-api.default.svc.cluster.local/v1/agents/{{ $json.agentName }}/execute",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $json.userInput }}"
+            },
+            {
+              "name": "wait",
+              "value": true
+            },
+            {
+              "name": "timeout",
+              "value": "={{ $json.timeout }}"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.sessionId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 65000
+        }
+      },
+      "id": "execute-agent-param",
+      "name": "Execute Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "value2": "completed"
+            }
+          ]
+        }
+      },
+      "id": "check-status",
+      "name": "Check Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    success: true,\n    queryName: $json.queryName,\n    input: $json.input,\n    response: $json.response,\n    duration: $json.duration,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-success",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    success: false,\n    queryName: $json.queryName,\n    input: $json.input,\n    status: $json.status,\n    error: $json.error || 'Query failed',\n    duration: $json.duration,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "format-error",
+      "name": "Format Error Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-success",
+      "name": "Respond to Webhook (Success)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond to Webhook (Error)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Input Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input Parameters": {
+      "main": [
+        [
+          {
+            "node": "Execute Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Agent": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Error Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook (Error)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

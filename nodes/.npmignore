@@ -1,0 +1,12 @@
+**/__tests__
+**/*.test.ts
+test-helpers/
+coverage/
+node_modules/
+src/
+tsconfig.json
+jest.config.js
+.eslintrc.js
+gulpfile.js
+*.md
+!README.md
