@@ -134,6 +134,7 @@ out/
 
 # node
 node_modules/
+coverage/
 
 # Local documentation files
 *.local.md
