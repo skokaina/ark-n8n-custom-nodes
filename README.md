@@ -15,14 +15,22 @@ Custom n8n nodes for ARK (Agentic Runtime for Kubernetes) - compose AI agents, t
 Install n8n with ARK custom nodes using Helm:
 
 ```bash
-helm install n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  --set ark.apiUrl=http://ark-api.default.svc.cluster.local:8000 \
-  --namespace default
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
 ```
+
+**Note**: The default configuration assumes:
+- ARK API is available at `http://ark-api.default.svc.cluster.local:8000`
+- ARK nginx gateway is deployed in `ark-system` namespace
+- If your setup differs, override with `--set ark.apiUrl=<your-ark-api-url>`
 
 ### Access n8n UI
 
-Port forward to access n8n locally:
+**Option 1: Via Gateway (Recommended for ARK clusters)**
+
+Open in browser: http://ark-n8n.default.127.0.0.1.nip.io  
+
+
+**Option 2: Via Port Forward (Local development)**
 
 ```bash
 kubectl port-forward svc/ark-n8n 5678:5678 -n default
@@ -65,32 +73,34 @@ storage:
 
 ### Custom Configuration
 
-Override default values:
+**Example: Different ARK API URL**
 
 ```bash
-helm install n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
   --set ark.apiUrl=https://your-ark-api.example.com \
-  --set app.image.tag=v0.0.1 \
-  --set storage.size=5Gi \
   --namespace default
 ```
 
-### Custom Domain Configuration
-
-For production deployments with custom domains:
+**Example: Disable HTTPRoute (for port-forward only access)**
 
 ```bash
-helm install n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  --set ark.apiUrl=http://ark-api.default.svc.cluster.local:8000 \
-  --set httpRoute.enabled=true \
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set httpRoute.enabled=false \
+  --namespace default
+```
+
+**Example: Custom domain for production**
+
+```bash
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
   --set httpRoute.hostnames[0]=n8n.yourcompany.com \
-  --set httpRoute.origin=https://n8n.yourcompany.com \
+  --set httpRoute.origin=n8n.yourcompany.com \
   --set app.env.N8N_PROTOCOL=https \
   --set app.env.N8N_HOST=n8n.yourcompany.com \
+  --set app.env.N8N_EDITOR_BASE_URL=https://n8n.yourcompany.com \
+  --set app.env.WEBHOOK_URL=https://n8n.yourcompany.com \
   --namespace default
 ```
-
-**Note**: The `httpRoute.origin` header is automatically derived from `N8N_PROTOCOL` and the first hostname if not explicitly set.
 
 ### Environment Variables
 
@@ -143,30 +153,6 @@ Import workflows:
 2. Select workflow JSON file
 3. Configure ARK API base URL
 4. Save and execute
-
-## Architecture
-
-This package provides:
-
-1. **Custom n8n Nodes** (TypeScript)
-   - ARK Agent, Model, Team, Evaluation nodes
-   - Dynamic resource loading from ARK API
-   - Type-safe parameter validation
-
-2. **Dockerfile**
-   - Extends official n8n image
-   - Pre-installs ARK custom nodes globally
-   - Configures N8N_CUSTOM_EXTENSIONS
-
-3. **Helm Chart**
-   - Kubernetes deployment for n8n
-   - Persistent storage for workflows
-   - HTTPRoute for ingress (optional)
-
-4. **DevSpace Configuration**
-   - Local development environment
-   - File sync for hot-reload
-   - Port forwarding and logs
 
 ## Development
 

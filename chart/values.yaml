@@ -13,8 +13,8 @@ app:
     N8N_PROTOCOL: http
     N8N_SECURE_COOKIE: "false"
     N8N_PROXY_HOPS: "1"
-    N8N_EDITOR_BASE_URL: http://ark-n8n.default.127.0.0.1.nip.io:8080
-    WEBHOOK_URL: http://ark-n8n.default.127.0.0.1.nip.io:8080
+    N8N_EDITOR_BASE_URL: http://ark-n8n.default.127.0.0.1.nip.io
+    WEBHOOK_URL: http://ark-n8n.default.127.0.0.1.nip.io
     N8N_PUSH_BACKEND: sse
     GENERIC_TIMEZONE: America/New_York
     N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
