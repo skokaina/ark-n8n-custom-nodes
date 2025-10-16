@@ -52,31 +52,7 @@ export class ArkAgent implements INodeType {
         name: "wait",
         type: "boolean",
         default: true,
-        description: "Whether to wait for the query to complete",
-      },
-      {
-        displayName: "Timeout",
-        name: "timeout",
-        type: "string",
-        default: "300s",
-        description: 'Maximum time to wait for completion (e.g., "60s", "5m")',
-        placeholder: "300s",
-      },
-      {
-        displayName: "Session ID",
-        name: "sessionId",
-        type: "string",
-        default: "",
-        description: "Optional session ID for context persistence",
-        placeholder: "user-session-123",
-      },
-      {
-        displayName: "Memory",
-        name: "memory",
-        type: "string",
-        default: "",
-        description: "Optional memory resource name",
-        placeholder: "conversation-memory",
+        description: "Whether to wait for the query to complete (when false, streaming is enabled)",
       },
     ],
   };
@@ -113,32 +89,75 @@ export class ArkAgent implements INodeType {
       const agent = this.getNodeParameter("agent", i) as string;
       const input = this.getNodeParameter("input", i) as string;
       const wait = this.getNodeParameter("wait", i) as boolean;
-      const timeout = this.getNodeParameter("timeout", i, "300s") as string;
-      const sessionId = this.getNodeParameter("sessionId", i, "") as string;
-      const memory = this.getNodeParameter("memory", i, "") as string;
 
-      const body: any = {
-        input,
-        wait,
-        timeout,
+      const queryName = `n8n-${agent}-${Date.now()}`;
+
+      const queryBody: any = {
+        name: queryName,
+        type: "user",
+        input: input,
+        targets: [
+          {
+            type: "agent",
+            name: agent,
+          },
+        ],
       };
 
-      if (sessionId) {
-        body.sessionId = sessionId;
-      }
-
-      if (memory) {
-        body.memory = memory;
-      }
-
-      const response = await this.helpers.request({
+      await this.helpers.request({
         method: "POST",
-        url: `${baseUrl}/v1/agents/${agent}/execute`,
-        body,
+        url: `${baseUrl}/v1/queries`,
+        body: queryBody,
         json: true,
       });
 
-      returnData.push({ json: response });
+      if (!wait) {
+        returnData.push({
+          json: {
+            queryName: queryName,
+            status: "pending",
+            message: "Query created, not waiting for completion"
+          }
+        });
+        continue;
+      }
+
+      let attempts = 0;
+      const maxAttempts = 60;
+      let response: any = null;
+
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        const queryStatus = await this.helpers.request({
+          method: "GET",
+          url: `${baseUrl}/v1/queries/${queryName}`,
+          json: true,
+        });
+
+        if (queryStatus.status?.phase === "done") {
+          response = queryStatus;
+          break;
+        } else if (queryStatus.status?.phase === "error") {
+          throw new Error(`Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`);
+        }
+
+        attempts++;
+      }
+
+      if (!response) {
+        throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
+      }
+
+      const output = {
+        queryName: queryName,
+        status: response.status?.phase || "unknown",
+        input: input,
+        response: response.status?.responses?.[0]?.content || "",
+        duration: response.status?.duration || null,
+      };
+
+      returnData.push({ json: output });
     }
 
     return [returnData];

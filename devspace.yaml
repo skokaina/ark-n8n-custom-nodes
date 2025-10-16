@@ -6,12 +6,16 @@ images:
     image: ark-n8n
     dockerfile: Dockerfile
     context: .
+    buildKit: {}
+    docker:
+      preferMinikube: false
 
 pipelines:
   deploy: |-
     build_images --all
     create_deployments --all
   dev: |-
+    build_images --all
     create_deployments --all
     start_dev --all
 
@@ -26,6 +30,7 @@ deployments:
           image:
             repository: ${runtime.images.ark-n8n.image}
             tag: ${runtime.images.ark-n8n.tag}
+            pullPolicy: Never
           # Override resources for local development
           resources:
             limits:
@@ -34,27 +39,26 @@ deployments:
             requests:
               memory: "256Mi"
               cpu: "200m"
+          # Override environment for dev mode via HTTPRoute
+          env:
+            N8N_HOST: ark-n8n-devspace.default.127.0.0.1.nip.io
+            N8N_EDITOR_BASE_URL: http://ark-n8n-devspace.default.127.0.0.1.nip.io
+            N8N_PUSH_BACKEND: websocket
         httpRoute:
           enabled: true
+          hostnames:
+            - ark-n8n-devspace.default.127.0.0.1.nip.io
+          origin: http://ark-n8n-devspace.default.127.0.0.1.nip.io
 
 dev:
   ark-n8n:
     imageSelector: ark-n8n
     namespace: default
-    # Stream logs instead of terminal
     logs:
       lastLines: 50
-    # Port forwarding for n8n UI
     ports:
-      - port: "5678:5678"
-    # File synchronization for custom nodes development
+      - port: "5678:80"
     sync:
-      - path: ./nodes:/tmp/n8n-nodes-ark
-        startContainer: true
-        disableDownload: true
-        uploadExcludeFile: .dockerignore
-        onUpload:
-          restartContainer: true
-    # Enable SSH for IDE integration
-    ssh:
-      enabled: true
+      - path: /tmp/n8n-devspace:/home/node/.n8n
+        printLogs: true
+        initialSync: preferRemote

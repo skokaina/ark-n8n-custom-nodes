@@ -130,6 +130,7 @@ publish/
 
 # build output directory
 out/
+dist/
 
 
 # node
@@ -139,3 +140,4 @@ coverage/
 # Local documentation files
 *.local.md
 .devspace/
+devspace.local.yaml
