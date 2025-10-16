@@ -16,6 +16,27 @@ export class ArkApi implements ICredentialType {
       placeholder: "http://ark-api.default.svc.cluster.local",
     },
     {
+      displayName: "Namespace",
+      name: "namespace",
+      type: "string",
+      default: "default",
+      required: false,
+      description: "Kubernetes namespace for ARK resources",
+      placeholder: "default",
+    },
+    {
+      displayName: "API Key",
+      name: "apiKey",
+      type: "string",
+      typeOptions: {
+        password: true,
+      },
+      default: "",
+      required: false,
+      description: "Optional API key for authentication (format: pk-ark-xxx:sk-ark-xxx)",
+      placeholder: "pk-ark-xxx:sk-ark-xxx",
+    },
+    {
       displayName: "API Token",
       name: "token",
       type: "string",
@@ -24,7 +45,7 @@ export class ArkApi implements ICredentialType {
       },
       default: "",
       required: false,
-      description: "Optional API token for authentication (future use)",
+      description: "Optional API token for authentication (legacy, use API Key instead)",
     },
   ];
 }

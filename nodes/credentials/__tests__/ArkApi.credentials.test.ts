@@ -50,8 +50,38 @@ describe("ArkApi", () => {
       expect(tokenProperty?.required).toBe(false);
     });
 
+    it("should have namespace property", () => {
+      const namespaceProperty = credentials.properties.find(
+        (p) => p.name === "namespace",
+      );
+
+      expect(namespaceProperty).toBeDefined();
+      expect(namespaceProperty?.displayName).toBe("Namespace");
+      expect(namespaceProperty?.type).toBe("string");
+      expect(namespaceProperty?.required).toBe(false);
+      expect(namespaceProperty?.default).toBe("default");
+    });
+
+    it("should have apiKey property", () => {
+      const apiKeyProperty = credentials.properties.find(
+        (p) => p.name === "apiKey",
+      );
+
+      expect(apiKeyProperty).toBeDefined();
+      expect(apiKeyProperty?.displayName).toBe("API Key");
+      expect(apiKeyProperty?.type).toBe("string");
+      expect(apiKeyProperty?.typeOptions?.password).toBe(true);
+      expect(apiKeyProperty?.required).toBe(false);
+    });
+
     it("should have all required fields", () => {
-      expect(credentials.properties).toHaveLength(2);
+      expect(credentials.properties).toHaveLength(4);
+      expect(credentials.properties.map(p => p.name)).toEqual([
+        "baseUrl",
+        "namespace",
+        "apiKey",
+        "token",
+      ]);
     });
   });
 

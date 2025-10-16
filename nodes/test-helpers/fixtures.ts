@@ -222,3 +222,67 @@ export const queryDetailFixture = {
     ],
   },
 };
+
+export const mockToolsList = {
+  items: [
+    {
+      metadata: {
+        name: 'web-search',
+        namespace: 'default',
+      },
+      spec: {
+        description: 'Search the web for information',
+        builtin: true,
+      },
+    },
+    {
+      metadata: {
+        name: 'code-interpreter',
+        namespace: 'default',
+      },
+      spec: {
+        description: 'Execute code and return results',
+        builtin: true,
+      },
+    },
+    {
+      metadata: {
+        name: 'calculator',
+        namespace: 'default',
+      },
+      spec: {
+        description: 'Perform mathematical calculations',
+        builtin: true,
+      },
+    },
+    {
+      metadata: {
+        name: 'custom-api-tool',
+        namespace: 'default',
+      },
+      spec: {
+        description: 'Custom API integration tool',
+        builtin: false,
+      },
+    },
+  ],
+  count: 4,
+};
+
+export const mockToolDetail = {
+  metadata: {
+    name: 'web-search',
+    namespace: 'default',
+  },
+  spec: {
+    description: 'Search the web for information',
+    builtin: true,
+    parameters: {
+      query: {
+        type: 'string',
+        description: 'Search query',
+        required: true,
+      },
+    },
+  },
+};

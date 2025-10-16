@@ -46,11 +46,13 @@ export class ArkAgent implements INodeType {
 ```
 
 **Key files**:
-- `nodes/nodes/ArkAgent/ArkAgent.node.ts` - Agent execution node
+- `nodes/nodes/ArkAgent/ArkAgent.node.ts` - Simple agent execution node
+- `nodes/nodes/ArkAgentAdvanced/ArkAgentAdvanced.node.ts` - Advanced agent with memory, session management, and dynamic configuration
 - `nodes/nodes/ArkModel/ArkModel.node.ts` - Model query node
 - `nodes/nodes/ArkTeam/ArkTeam.node.ts` - Multi-agent team coordination
 - `nodes/nodes/ArkEvaluation/ArkEvaluation.node.ts` - Quality evaluation node
 - `nodes/credentials/ArkApi.credentials.ts` - ARK API authentication
+- `nodes/utils/arkHelpers.ts` - Shared utility functions for ARK API interactions
 
 ### Building Nodes
 
@@ -252,6 +254,202 @@ kubectl exec -it deployment/ark-n8n -- env | grep N8N_CUSTOM_EXTENSIONS
 ```bash
 kubectl exec -it deployment/ark-n8n -- curl http://ark-api.default.svc.cluster.local:8000/v1/agents
 ```
+
+## ARK Agent Advanced Node
+
+### Overview
+
+The **ARK Agent Advanced** node extends the basic ARK Agent with support for:
+- **Memory and Session Management**: Maintain conversation history across multiple queries
+- **Dynamic Configuration**: Update agent model and tools from connected n8n sub-nodes
+- **Sub-Node Connections**: Connect Chat Model, Memory, and Tool nodes from n8n's AI ecosystem
+
+### Configuration Modes
+
+#### Static Mode (Recommended for Production)
+Use pre-configured ARK agents without modification. This is faster and safer for production workflows.
+
+```yaml
+# Agent already configured in ARK
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: support-agent
+spec:
+  modelRef:
+    name: gpt-4
+  tools:
+    - type: builtin
+      name: web-search
+  prompt: "You are a helpful support agent..."
+```
+
+**Node Configuration**:
+- Configuration Mode: "Use Pre-configured Agent"
+- Agent: Select from dropdown
+- Memory: Select ARK Memory CRD
+- Session ID: User-provided or auto-generated
+
+#### Dynamic Mode (For Experimentation)
+Update agent configuration at runtime from connected n8n sub-nodes.
+
+**Workflow**:
+1. Connect OpenAI/Anthropic Model node
+2. Connect Tool nodes (web search, calculator, etc.)
+3. Node PATCHes agent with new configuration
+4. Executes query with updated agent
+
+**Use Cases**:
+- A/B testing different models
+- Dynamic tool selection based on workflow logic
+- Experimentation without creating new agent CRDs
+
+### Memory and Session Management
+
+ARK handles memory at the **Query level** using Memory CRDs and session IDs.
+
+**Memory CRD Example**:
+```yaml
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Memory
+metadata:
+  name: ark-cluster-memory
+spec:
+  type: buffer
+  maxMessages: 20
+```
+
+**Session ID Strategies**:
+
+| Strategy | Session ID Example | Use Case |
+|----------|-------------------|----------|
+| User-specific | `user-{{$json.userId}}-session` | Multi-user chat applications |
+| Per-conversation | `conv-{{$json.conversationId}}` | Separate conversation threads |
+| Per-execution | Auto-generated | New conversation each workflow run |
+| Static (testing) | `test-session-123` | Predictable testing |
+| Weekly sessions | `{{$json.userId}}-{{$now.startOf('week')}}` | Reset conversations weekly |
+
+**How it works**:
+1. First query with session ID → ARK creates conversation in Memory
+2. Subsequent queries with same session ID → ARK retrieves history and appends
+3. Different session ID → Fresh conversation
+
+### API Endpoints Used
+
+**Static Mode**:
+```
+POST /v1/namespaces/{namespace}/queries
+{
+  spec: {
+    input: "User question",
+    targets: [{ type: "agent", name: "my-agent" }],
+    memory: { name: "ark-cluster-memory", namespace: "default" },
+    sessionId: "user-123-session",
+    wait: true,
+    timeout: "30s"
+  }
+}
+```
+
+**Dynamic Mode**:
+```
+# 1. Update agent configuration
+PATCH /v1/namespaces/{namespace}/agents/{name}
+{
+  spec: {
+    modelRef: { name: "gpt-4-turbo", namespace: "default" },
+    tools: [
+      { type: "builtin", name: "web-search" },
+      { type: "custom", name: "calculator" }
+    ]
+  }
+}
+
+# 2. Execute query (same as static mode)
+POST /v1/namespaces/{namespace}/queries
+{...}
+```
+
+### Example Workflows
+
+**1. Persistent Chat Session**:
+```
+Webhook Trigger (receives userId and message)
+  ↓
+ARK Agent Advanced
+  - Session ID: "={{$json.userId}}-chat"
+  - Memory: "ark-cluster-memory"
+  - Agent: "support-agent"
+  - Input: "={{$json.message}}"
+  ↓
+HTTP Response (send agent reply)
+```
+
+**2. Dynamic Model Testing**:
+```
+OpenAI Model (GPT-4) ──┐
+                       │
+Calculator Tool ───────┼──→ ARK Agent Advanced
+                       │     - Configuration Mode: "Dynamic"
+Web Search Tool ───────┘     - Session ID: (empty, auto-generated)
+                             - Input: "Solve complex problem"
+```
+
+**3. Multi-turn Conversation**:
+```
+Loop over user messages
+  ↓
+ARK Agent Advanced
+  - Session ID: "={{$json.conversationId}}" (fixed for entire loop)
+  - Memory: "ark-cluster-memory"
+  - Agent: "qa-agent"
+  - Input: "={{$item.message}}"
+  ↓
+Store responses in database
+```
+
+### Configuration Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| Configuration Mode | Dropdown | Yes | Static or Dynamic |
+| Agent | Dropdown | Yes | ARK agent to execute |
+| Input | String | Yes | User query/prompt |
+| Memory | Dropdown | No | ARK Memory CRD reference |
+| Session ID | String | No | Unique session identifier (auto-generates if empty) |
+| Wait for Completion | Boolean | Yes | Wait for response or run async |
+| Timeout | String | Yes | Max wait time (e.g., "30s", "5m") |
+
+### Output Structure
+
+```json
+{
+  "queryName": "n8n-support-agent-1234567890",
+  "status": "completed",
+  "input": "What did we discuss earlier?",
+  "response": "We discussed ARK custom nodes and memory management.",
+  "duration": "2.5s",
+  "sessionId": "user-123-session",
+  "memoryRef": "ark-cluster-memory",
+  "agentName": "support-agent"
+}
+```
+
+### Credential Configuration
+
+**ARK API Credentials**:
+- **Base URL**: ARK API service endpoint (e.g., `http://ark-api.default.svc.cluster.local`)
+- **Namespace**: Kubernetes namespace for ARK resources (default: `default`)
+- **API Key**: Optional authentication (format: `pk-ark-xxx:sk-ark-xxx`)
+
+### Best Practices
+
+1. **Use Static Mode for Production**: Pre-configure agents in ARK, use static mode in workflows
+2. **Session ID Management**: Use expressions for dynamic session IDs (e.g., user-based)
+3. **Memory Cleanup**: Configure Memory CRDs with appropriate `maxMessages` or expiration
+4. **Error Handling**: Wrap node in try/catch or use n8n's error workflows
+5. **Testing**: Use static session IDs for reproducible test conversations
+6. **Performance**: Static mode is faster (no PATCH call), use for high-throughput workflows
 
 ## Contributing Guidelines
 

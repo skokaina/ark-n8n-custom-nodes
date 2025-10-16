@@ -1,0 +1,147 @@
+{
+  "name": "ARK Agent Advanced - Chat with Memory",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "chat-webhook"
+    },
+    {
+      "parameters": {
+        "selectionMode": "select",
+        "tool": "web-search"
+      },
+      "id": "ark-tool-web-search",
+      "name": "ARK Tool: Web Search",
+      "type": "n8n-nodes-ark.arkTool",
+      "typeVersion": 1,
+      "position": [450, 200],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "selectionMode": "select",
+        "tool": "calculator"
+      },
+      "id": "ark-tool-calculator",
+      "name": "ARK Tool: Calculator",
+      "type": "n8n-nodes-ark.arkTool",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "configMode": "static",
+        "agent": "support-agent",
+        "input": "={{$json.body.message}}",
+        "memoryRef": "ark-cluster-memory",
+        "sessionId": "={{$json.body.userId}}-chat",
+        "wait": true,
+        "timeout": "30s"
+      },
+      "id": "ark-agent-advanced",
+      "name": "ARK Agent Advanced",
+      "type": "n8n-nodes-ark.arkAgentAdvanced",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{{\n  \"response\": $json.response,\n  \"sessionId\": $json.sessionId,\n  \"status\": $json.status\n}}}",
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "ARK Tool: Web Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ARK Tool: Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Tool: Web Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "ARK Agent Advanced",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Tool: Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "ARK Agent Advanced",
+            "type": "ai_tool",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "ARK Agent Advanced": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "ark-agent-advanced-chat",
+  "meta": {
+    "instanceId": "ark-n8n-instance"
+  },
+  "tags": []
+}

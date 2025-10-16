@@ -41,9 +41,13 @@
     ],
     "nodes": [
       "dist/nodes/ArkAgent/ArkAgent.node.js",
+      "dist/nodes/ArkAgentAdvanced/ArkAgentAdvanced.node.js",
       "dist/nodes/ArkModel/ArkModel.node.js",
+      "dist/nodes/ArkModelSelector/ArkModelSelector.node.js",
+      "dist/nodes/ArkMemory/ArkMemory.node.js",
       "dist/nodes/ArkTeam/ArkTeam.node.js",
-      "dist/nodes/ArkEvaluation/ArkEvaluation.node.js"
+      "dist/nodes/ArkEvaluation/ArkEvaluation.node.js",
+      "dist/nodes/ArkTool/ArkTool.node.js"
     ]
   },
   "devDependencies": {

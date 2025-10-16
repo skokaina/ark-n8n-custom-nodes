@@ -23,6 +23,40 @@ Sample n8n workflows demonstrating integration with ARK agents.
 
 **Use this workflow** to understand quality-gated automation patterns.
 
+### `ark-agent-advanced-with-memory.json` 🆕
+**Advanced chat agent with conversation memory and session management**:
+
+1. Webhook trigger receives chat message with userId
+2. ARK Tool nodes provide web search and calculator capabilities
+3. ARK Agent Advanced executes with:
+   - Static mode (pre-configured agent)
+   - Memory: ark-cluster-memory
+   - Session ID: user-based (e.g., "user-123-chat")
+   - Connected tools: web-search, calculator
+4. Respond to webhook with agent response and session info
+
+**Features demonstrated**:
+- ARK Agent Advanced node with memory and session management
+- ARK Tool nodes for dynamic tool selection
+- Sub-node connections (ai_tool type)
+- Session-based conversation continuity across multiple requests
+- User-specific conversation sessions
+
+**Use this workflow** to build chat applications with conversation memory.
+
+**Testing**:
+```bash
+# First message
+curl -X POST http://localhost:5678/webhook/chat \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-123", "message": "What is 2+2?"}'
+
+# Follow-up (remembers context)
+curl -X POST http://localhost:5678/webhook/chat \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-123", "message": "Multiply that by 3"}'
+```
+
 ### `ark-agent-query-basic.json`
 Basic workflow demonstrating agent query execution:
 1. Manual trigger to start workflow

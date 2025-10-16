@@ -31,5 +31,25 @@ function copyEvaluationIcon() {
     .pipe(dest('dist/nodes/ArkEvaluation'));
 }
 
-exports['build:icons'] = series(copyAgentIcon, copyModelIcon, copyTeamIcon, copyEvaluationIcon);
+function copyAgentAdvancedIcon() {
+  return src('nodes/ArkAgentAdvanced/ark-agent-advanced.svg')
+    .pipe(dest('dist/nodes/ArkAgentAdvanced'));
+}
+
+function copyToolIcon() {
+  return src('nodes/ArkTool/ark-tool.svg')
+    .pipe(dest('dist/nodes/ArkTool'));
+}
+
+function copyModelSelectorIcon() {
+  return src('nodes/ArkModelSelector/ark-model-selector.svg')
+    .pipe(dest('dist/nodes/ArkModelSelector'));
+}
+
+function copyMemoryIcon() {
+  return src('nodes/ArkMemory/ark-memory.svg')
+    .pipe(dest('dist/nodes/ArkMemory'));
+}
+
+exports['build:icons'] = series(copyAgentIcon, copyModelIcon, copyTeamIcon, copyEvaluationIcon, copyAgentAdvancedIcon, copyToolIcon, copyModelSelectorIcon, copyMemoryIcon);
 exports.default = exports['build:icons'];

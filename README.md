@@ -119,14 +119,18 @@ ARK configuration:
 
 ### Implemented ✅
 
-- **ARK Agent Node** - Execute agents with dynamic resource locators
+- **ARK Agent Node** - Execute pre-configured agents with simple query interface
+- **ARK Agent Advanced Node** - Execute agents with memory, session management, and dynamic configuration
+  - Memory and conversation continuity via session IDs
+  - Connect Chat Model, Memory, and Tool sub-nodes from n8n
+  - Static mode (use pre-configured agents) or Dynamic mode (update at runtime)
 - **ARK Model Node** - Manage AI models from workflow automation
 - **ARK Team Node** - Orchestrate multi-agent teams
 - **ARK Evaluation Node** - Quality scoring with configurable dimensions
   - Direct evaluation (input/output pairs)
   - Query evaluation (assess historical interactions)
 - **Dynamic Resource Discovery** - Agents, models, evaluators populate from ARK API
-- **Comprehensive Tests** - 76 tests with >89% coverage
+- **Comprehensive Tests** - 76+ tests with >89% coverage
 
 ### Coming Soon 🚧
 
