@@ -235,6 +235,7 @@ export class ArkAgentAdvanced implements INodeType {
               agentName: agentName,
               memoryRef: memoryRef?.name || null,
             },
+            pairedItem: { item: i }
           });
           continue;
         }
@@ -259,7 +260,10 @@ export class ArkAgentAdvanced implements INodeType {
           agentName: agentName,
         };
 
-        returnData.push({ json: output });
+        returnData.push({
+          json: output,
+          pairedItem: { item: i }
+        });
       } catch (error: any) {
         throw new Error(`Query execution failed: ${error.message}`);
       }

@@ -141,3 +141,4 @@ coverage/
 *.local.md
 .devspace/
 devspace.local.yaml
+devspace.env.yaml

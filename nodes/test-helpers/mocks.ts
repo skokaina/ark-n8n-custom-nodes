@@ -8,16 +8,23 @@ import {
 export function createMockExecuteFunctions(
   inputDataOrOptions?: INodeExecutionData[] | {
     inputData?: INodeExecutionData[];
+    parameters?: Record<string, any>;
     nodeParameters?: Record<string, any>;
     credentials?: Record<string, any>;
+    helpers?: any;
+    workflow?: any;
+    executionId?: string;
   },
   parameters?: Record<string, any>,
   credentials?: Record<string, any>
-): Partial<IExecuteFunctions> {
+): Partial<IExecuteFunctions> & { helpers: any } {
   // Support both old signature (inputData, parameters, credentials) and new signature (options object)
   let inputData: INodeExecutionData[];
   let nodeParameters: Record<string, any>;
   let creds: Record<string, any>;
+  let helpers: any;
+  let workflow: any;
+  let executionId: string;
 
   if (Array.isArray(inputDataOrOptions)) {
     // Old signature: createMockExecuteFunctions(inputData, parameters, credentials)
@@ -27,17 +34,23 @@ export function createMockExecuteFunctions(
       baseUrl: 'http://ark-api.default.svc.cluster.local',
       token: 'test-token',
     };
+    helpers = { request: jest.fn() };
+    workflow = { id: 'test-workflow', name: 'Test Workflow' };
+    executionId = 'test-execution';
   } else {
     // New signature: createMockExecuteFunctions({ inputData, nodeParameters, credentials })
     const options = inputDataOrOptions || {};
     inputData = options.inputData || [{ json: {} }];
-    nodeParameters = options.nodeParameters || {};
+    nodeParameters = options.parameters || options.nodeParameters || {};
     creds = options.credentials || {
       arkApi: {
         baseUrl: 'http://ark-api.default.svc.cluster.local',
         token: 'test-token',
       },
     };
+    helpers = options.helpers || { request: jest.fn() };
+    workflow = options.workflow || { id: 'test-workflow', name: 'Test Workflow' };
+    executionId = options.executionId || 'test-execution';
   }
 
   return {
@@ -48,20 +61,15 @@ export function createMockExecuteFunctions(
     getCredentials: async <T extends object>(type: string, itemIndex?: number) => {
       return (creds[type] || creds) as T;
     },
-    getWorkflow: () => ({
-      id: 'test-workflow',
-      name: 'Test Workflow',
-    } as any),
-    getExecutionId: () => 'test-execution',
+    getWorkflow: () => workflow as any,
+    getExecutionId: () => executionId,
     getInputConnectionData: async (
       inputName: string,
       itemIndex: number
     ): Promise<unknown> => {
       return null;
     },
-    helpers: {
-      request: jest.fn(),
-    } as any,
+    helpers: helpers as any,
   };
 }
 

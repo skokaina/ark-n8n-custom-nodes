@@ -160,7 +160,61 @@ Import workflows:
 
 ## Development
 
-### Local Development with DevSpace
+### Local Development with DevSpace and ngrok
+
+For local development with external webhooks via ngrok:
+
+**1. Configure environment**
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env`:
+```bash
+NGROK_DOMAIN=your-subdomain.ngrok-free.app
+NGROK_PORT=8080
+NGROK_N8N_HOST_HEADER=ark-n8n-devspace.default.127.0.0.1.nip.io
+```
+
+**2. Start development environment**
+
+```bash
+./devspace-start.sh
+```
+
+This script will:
+- Check port availability (interactive stop option if port is in use)
+- Verify nginx gateway health and fix stale endpoints automatically
+- Generate devspace environment overrides from `.env`
+- Start kubectl port-forward (8080:80)
+- Start ngrok tunnel with your configured domain
+- Display local and public URLs
+
+**3. Deploy with devspace**
+
+```bash
+devspace dev
+```
+
+Your n8n instance will be accessible at:
+- Local: http://ark-n8n-devspace.default.127.0.0.1.nip.io:8080
+- Public: https://your-subdomain.ngrok-free.app
+
+**4. Stop development environment**
+
+```bash
+./devspace-stop.sh
+```
+
+This gracefully stops:
+- ngrok tunnel
+- kubectl port-forward
+- Removes temporary config files
+
+**Manual DevSpace (without ngrok)**
 
 Run n8n locally with hot-reload for custom nodes:
 
