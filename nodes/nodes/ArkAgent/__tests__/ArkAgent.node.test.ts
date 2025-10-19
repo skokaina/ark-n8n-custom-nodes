@@ -237,15 +237,15 @@ describe("ArkAgent Node", () => {
         .mockImplementationOnce(postMock)
         .mockImplementation(getMock);
 
-      await expect(async () => {
-        const executePromise = arkAgent.execute!.call(
-          mockFunctions as IExecuteFunctions,
-        );
+      const executePromise = arkAgent.execute!.call(
+        mockFunctions as IExecuteFunctions,
+      );
 
-        // Fast-forward through polling delay
-        await jest.advanceTimersByTimeAsync(5000);
-        await executePromise;
-      }).rejects.toThrow("Query failed");
+      // Run timers and expect rejection simultaneously
+      await Promise.all([
+        jest.runAllTimersAsync(),
+        expect(executePromise).rejects.toThrow("Query failed")
+      ]);
     });
 
     it("should timeout if query never completes", async () => {
@@ -270,19 +270,16 @@ describe("ArkAgent Node", () => {
         .mockImplementationOnce(postMock)
         .mockImplementation(getMock);
 
-      await expect(async () => {
-        const executePromise = arkAgent.execute!.call(
-          mockFunctions as IExecuteFunctions,
-        );
+      const executePromise = arkAgent.execute!.call(
+        mockFunctions as IExecuteFunctions,
+      );
 
-        // Fast-forward through all 60 polling attempts (5 seconds each)
-        for (let i = 0; i < 60; i++) {
-          await jest.advanceTimersByTimeAsync(5000);
-        }
-
-        await executePromise;
-      }).rejects.toThrow("Query timed out");
-    }, 10000); // Increase test timeout
+      // Run timers and expect rejection simultaneously
+      await Promise.all([
+        jest.runAllTimersAsync(),
+        expect(executePromise).rejects.toThrow("Query timed out")
+      ]);
+    });
 
     it("should process multiple input items", async () => {
       const inputData = [
