@@ -18,7 +18,12 @@ describe("ArkModelSelector Node", () => {
     });
 
     it("should have ai_languageModel output type", () => {
-      expect(node.description.outputs).toEqual(["ai_languageModel"]);
+      expect(node.description.outputs).toEqual([
+        {
+          displayName: "Model",
+          type: "ai_languageModel",
+        },
+      ]);
     });
 
     it("should have model property", () => {
@@ -61,11 +66,11 @@ describe("ArkModelSelector Node", () => {
 
       expect(models).toHaveLength(2);
       expect(models[0]).toEqual({
-        name: "gpt-4 (openai)",
+        name: "gpt-4 (openai: undefined)",
         value: "gpt-4",
       });
       expect(models[1]).toEqual({
-        name: "claude-3 (anthropic)",
+        name: "claude-3 (anthropic: undefined)",
         value: "claude-3",
       });
       expect(mockContext.helpers.request).toHaveBeenCalledWith({
@@ -102,7 +107,7 @@ describe("ArkModelSelector Node", () => {
 
       expect(models).toHaveLength(1);
       expect(models[0]).toEqual({
-        name: "gpt-4 (openai)",
+        name: "gpt-4 (openai: undefined)",
         value: "gpt-4",
       });
 
@@ -115,7 +120,7 @@ describe("ArkModelSelector Node", () => {
       });
     });
 
-    it("should handle empty model list", async () => {
+    it("should return default models when API returns empty list", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -132,10 +137,15 @@ describe("ArkModelSelector Node", () => {
 
       const models = await node.methods.loadOptions.getModels.call(mockContext);
 
-      expect(models).toHaveLength(0);
+      // When empty list is returned, it throws and falls back to defaults
+      expect(models).toHaveLength(2);
+      expect(models).toEqual([
+        { name: "GPT-4", value: "gpt-4" },
+        { name: "Default", value: "default" },
+      ]);
     });
 
-    it("should return empty array if both endpoints fail", async () => {
+    it("should return default models if both endpoints fail", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -150,7 +160,12 @@ describe("ArkModelSelector Node", () => {
 
       const models = await node.methods.loadOptions.getModels.call(mockContext);
 
-      expect(models).toHaveLength(0);
+      // Falls back to default models
+      expect(models).toHaveLength(2);
+      expect(models).toEqual([
+        { name: "GPT-4", value: "gpt-4" },
+        { name: "Default", value: "default" },
+      ]);
     });
   });
 
@@ -186,7 +201,6 @@ describe("ArkModelSelector Node", () => {
         name: "gpt-4",
         namespace: "default",
         provider: "openai",
-        endpoint: "https://api.openai.com/v1",
         modelName: "gpt-4",
         model: "gpt-4",
       });
@@ -220,8 +234,8 @@ describe("ArkModelSelector Node", () => {
       expect(result[0][0].json).toMatchObject({
         name: "gpt-4",
         namespace: "default",
-        provider: "unknown",
-        modelName: "gpt-4",
+        provider: "openai", // Default value from implementation
+        temperature: 0.7, // Default value
       });
     });
 

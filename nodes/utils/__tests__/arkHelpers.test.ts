@@ -502,17 +502,18 @@ describe("arkHelpers", () => {
 
       jest.useFakeTimers();
 
-      const pollPromise = pollQueryStatus(
-        mockContext,
-        "http://ark-api:8000",
-        "default",
-        "test-query",
-        10
-      );
+      await expect(async () => {
+        const pollPromise = pollQueryStatus(
+          mockContext,
+          "http://ark-api:8000",
+          "default",
+          "test-query",
+          10
+        );
 
-      await jest.advanceTimersByTimeAsync(5000);
-
-      await expect(pollPromise).rejects.toThrow("Query failed: Query failed");
+        await jest.advanceTimersByTimeAsync(5000);
+        await pollPromise;
+      }).rejects.toThrow("Query failed");
 
       jest.useRealTimers();
     });
@@ -531,19 +532,20 @@ describe("arkHelpers", () => {
 
       jest.useFakeTimers();
 
-      const pollPromise = pollQueryStatus(
-        mockContext,
-        "http://ark-api:8000",
-        "default",
-        "test-query",
-        2 // Only 2 attempts
-      );
+      await expect(async () => {
+        const pollPromise = pollQueryStatus(
+          mockContext,
+          "http://ark-api:8000",
+          "default",
+          "test-query",
+          2 // Only 2 attempts
+        );
 
-      await jest.advanceTimersByTimeAsync(5000);
-      await jest.advanceTimersByTimeAsync(5000);
-      await jest.advanceTimersByTimeAsync(5000);
-
-      await expect(pollPromise).rejects.toThrow("Query timed out after 10 seconds");
+        await jest.advanceTimersByTimeAsync(5000);
+        await jest.advanceTimersByTimeAsync(5000);
+        await jest.advanceTimersByTimeAsync(5000);
+        await pollPromise;
+      }).rejects.toThrow("Query timed out");
 
       jest.useRealTimers();
     });

@@ -18,7 +18,12 @@ describe("ArkMemory Node", () => {
     });
 
     it("should have ai_memory output type", () => {
-      expect(node.description.outputs).toEqual(["ai_memory"]);
+      expect(node.description.outputs).toEqual([
+        {
+          displayName: "Memory",
+          type: "ai_memory",
+        },
+      ]);
     });
 
     it("should have memory property", () => {

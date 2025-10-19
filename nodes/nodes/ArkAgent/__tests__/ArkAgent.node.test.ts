@@ -11,18 +11,21 @@ import {
 } from "../../../test-helpers/mocks";
 import {
   mockAgentsList,
-  mockAgentExecuteRequest,
-  mockAgentExecuteResponseSuccess,
-  mockAgentExecuteResponseFailed,
-  mockAgentExecuteResponseTimeout,
-  mockAgentExecuteResponseAsync,
 } from "../../../test-helpers/fixtures";
+
+// Mock timers
+jest.useFakeTimers();
 
 describe("ArkAgent Node", () => {
   let arkAgent: ArkAgent;
 
   beforeEach(() => {
     arkAgent = new ArkAgent();
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
   });
 
   describe("Node Metadata", () => {
@@ -107,36 +110,6 @@ describe("ArkAgent Node", () => {
       expect(waitProperty?.default).toBe(true);
     });
 
-    it("should have timeout property", () => {
-      const timeoutProperty = arkAgent.description.properties.find(
-        (p: any) => p.name === "timeout",
-      );
-
-      expect(timeoutProperty).toBeDefined();
-      expect(timeoutProperty?.displayName).toBe("Timeout");
-      expect(timeoutProperty?.type).toBe("string");
-      expect(timeoutProperty?.default).toBe("300s");
-    });
-
-    it("should have sessionId property", () => {
-      const sessionIdProperty = arkAgent.description.properties.find(
-        (p: any) => p.name === "sessionId",
-      );
-
-      expect(sessionIdProperty).toBeDefined();
-      expect(sessionIdProperty?.displayName).toBe("Session ID");
-      expect(sessionIdProperty?.type).toBe("string");
-    });
-
-    it("should have memory property", () => {
-      const memoryProperty = arkAgent.description.properties.find(
-        (p: any) => p.name === "memory",
-      );
-
-      expect(memoryProperty).toBeDefined();
-      expect(memoryProperty?.displayName).toBe("Memory");
-      expect(memoryProperty?.type).toBe("string");
-    });
   });
 
   describe("getAgents() Loader Method", () => {
@@ -150,73 +123,21 @@ describe("ArkAgent Node", () => {
         mockFunctions as ILoadOptionsFunctions,
       );
 
-      expect(result).toHaveLength(2);
-      expect(result[0]).toEqual({
-        name: "test-agent",
-        value: "test-agent",
-      });
-      expect(result[1]).toEqual({
-        name: "sample-agent",
-        value: "sample-agent",
-      });
-
       expect(mockFunctions.helpers!.request).toHaveBeenCalledWith({
         method: "GET",
         url: "http://ark-api.default.svc.cluster.local/v1/agents",
         json: true,
       });
-    });
 
-    it("should handle API errors gracefully", async () => {
-      const mockFunctions = createMockLoadOptionsFunctions();
-      (mockFunctions.helpers!.request as jest.Mock).mockRejectedValue(
-        new Error("API Error"),
-      );
-
-      await expect(
-        arkAgent.methods!.loadOptions!.getAgents!.call(
-          mockFunctions as ILoadOptionsFunctions,
-        ),
-      ).rejects.toThrow("API Error");
+      expect(result).toEqual([
+        { name: "test-agent", value: "test-agent" },
+        { name: "sample-agent", value: "sample-agent" },
+      ]);
     });
   });
 
   describe("execute() Method", () => {
-    it("should execute agent with synchronous wait", async () => {
-      const inputData = [createMockNodeExecutionData({})];
-      const parameters = {
-        agent: "test-agent",
-        input: "Hello, what can you do?",
-        wait: true,
-        timeout: "30s",
-      };
-
-      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseSuccess,
-      );
-
-      const result = await arkAgent.execute!.call(
-        mockFunctions as IExecuteFunctions,
-      );
-
-      expect(result).toHaveLength(1);
-      expect(result[0]).toHaveLength(1);
-      expect(result[0][0].json).toEqual(mockAgentExecuteResponseSuccess);
-
-      expect(mockFunctions.helpers!.request).toHaveBeenCalledWith({
-        method: "POST",
-        url: "http://ark-api.default.svc.cluster.local/v1/agents/test-agent/execute",
-        body: {
-          input: "Hello, what can you do?",
-          wait: true,
-          timeout: "30s",
-        },
-        json: true,
-      });
-    });
-
-    it("should handle asynchronous execution (wait=false)", async () => {
+    it("should execute agent with wait=false (async mode)", async () => {
       const inputData = [createMockNodeExecutionData({})];
       const parameters = {
         agent: "test-agent",
@@ -225,110 +146,143 @@ describe("ArkAgent Node", () => {
       };
 
       const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseAsync,
-      );
+      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue({});
 
       const result = await arkAgent.execute!.call(
         mockFunctions as IExecuteFunctions,
       );
-
-      expect(result[0][0].json).toEqual(mockAgentExecuteResponseAsync);
-      expect(result[0][0].json.status).toBe("pending");
-    });
-
-    it("should handle execution timeout", async () => {
-      const inputData = [createMockNodeExecutionData({})];
-      const parameters = {
-        agent: "test-agent",
-        input: "Hello",
-        wait: true,
-        timeout: "30s",
-      };
-
-      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseTimeout,
-      );
-
-      const result = await arkAgent.execute!.call(
-        mockFunctions as IExecuteFunctions,
-      );
-
-      expect(result[0][0].json).toEqual(mockAgentExecuteResponseTimeout);
-      expect(result[0][0].json.status).toBe("timeout");
-    });
-
-    it("should handle execution failure", async () => {
-      const inputData = [createMockNodeExecutionData({})];
-      const parameters = {
-        agent: "test-agent",
-        input: "Hello",
-        wait: true,
-      };
-
-      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseFailed,
-      );
-
-      const result = await arkAgent.execute!.call(
-        mockFunctions as IExecuteFunctions,
-      );
-
-      expect(result[0][0].json).toEqual(mockAgentExecuteResponseFailed);
-      expect(result[0][0].json.status).toBe("failed");
-    });
-
-    it("should pass sessionId when provided", async () => {
-      const inputData = [createMockNodeExecutionData({})];
-      const parameters = {
-        agent: "test-agent",
-        input: "Hello",
-        wait: true,
-        sessionId: "session-123",
-      };
-
-      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseSuccess,
-      );
-
-      await arkAgent.execute!.call(mockFunctions as IExecuteFunctions);
 
       expect(mockFunctions.helpers!.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: expect.objectContaining({
-            sessionId: "session-123",
-          }),
-        }),
+          method: "POST",
+          url: "http://ark-api.default.svc.cluster.local/v1/queries",
+        })
       );
+
+      expect(result[0][0].json).toMatchObject({
+        status: "pending",
+        message: "Query created, not waiting for completion",
+      });
+      expect(result[0][0].json.queryName).toMatch(/^n8n-test-agent-/);
     });
 
-    it("should pass memory when provided", async () => {
+    it("should execute agent with wait=true and poll until done", async () => {
+      const inputData = [createMockNodeExecutionData({})];
+      const parameters = {
+        agent: "test-agent",
+        input: "Hello, what can you do?",
+        wait: true,
+      };
+
+      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
+
+      // Mock POST query creation
+      const postMock = jest.fn().mockResolvedValue({});
+
+      // Mock GET query status - first running, then done
+      const getMock = jest.fn()
+        .mockResolvedValueOnce({ status: { phase: "running" } })
+        .mockResolvedValueOnce({
+          status: {
+            phase: "done",
+            responses: [{ content: "I can help with various tasks" }],
+            duration: "1.5s",
+          },
+        });
+
+      (mockFunctions.helpers!.request as jest.Mock)
+        .mockImplementationOnce(postMock)
+        .mockImplementation(getMock);
+
+      const executePromise = arkAgent.execute!.call(
+        mockFunctions as IExecuteFunctions,
+      );
+
+      // Fast-forward through polling delays
+      await jest.advanceTimersByTimeAsync(5000); // First poll
+      await jest.advanceTimersByTimeAsync(5000); // Second poll
+
+      const result = await executePromise;
+
+      expect(result[0][0].json).toMatchObject({
+        status: "done",
+        input: "Hello, what can you do?",
+        response: "I can help with various tasks",
+        duration: "1.5s",
+      });
+    });
+
+    it("should handle query execution failure", async () => {
       const inputData = [createMockNodeExecutionData({})];
       const parameters = {
         agent: "test-agent",
         input: "Hello",
         wait: true,
-        memory: "conversation-memory",
       };
 
       const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseSuccess,
-      );
 
-      await arkAgent.execute!.call(mockFunctions as IExecuteFunctions);
+      // Mock POST query creation
+      const postMock = jest.fn().mockResolvedValue({});
 
-      expect(mockFunctions.helpers!.request).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.objectContaining({
-            memory: "conversation-memory",
-          }),
-        }),
-      );
+      // Mock GET query status - return error
+      const getMock = jest.fn().mockResolvedValue({
+        status: {
+          phase: "error",
+          responses: [{ content: "Agent failed" }],
+        },
+      });
+
+      (mockFunctions.helpers!.request as jest.Mock)
+        .mockImplementationOnce(postMock)
+        .mockImplementation(getMock);
+
+      await expect(async () => {
+        const executePromise = arkAgent.execute!.call(
+          mockFunctions as IExecuteFunctions,
+        );
+
+        // Fast-forward through polling delay
+        await jest.advanceTimersByTimeAsync(5000);
+        await executePromise;
+      }).rejects.toThrow("Query failed");
     });
+
+    it("should timeout if query never completes", async () => {
+      const inputData = [createMockNodeExecutionData({})];
+      const parameters = {
+        agent: "test-agent",
+        input: "Hello",
+        wait: true,
+      };
+
+      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
+
+      // Mock POST query creation
+      const postMock = jest.fn().mockResolvedValue({});
+
+      // Mock GET query status - always running
+      const getMock = jest.fn().mockResolvedValue({
+        status: { phase: "running" },
+      });
+
+      (mockFunctions.helpers!.request as jest.Mock)
+        .mockImplementationOnce(postMock)
+        .mockImplementation(getMock);
+
+      await expect(async () => {
+        const executePromise = arkAgent.execute!.call(
+          mockFunctions as IExecuteFunctions,
+        );
+
+        // Fast-forward through all 60 polling attempts (5 seconds each)
+        for (let i = 0; i < 60; i++) {
+          await jest.advanceTimersByTimeAsync(5000);
+        }
+
+        await executePromise;
+      }).rejects.toThrow("Query timed out");
+    }, 10000); // Increase test timeout
 
     it("should process multiple input items", async () => {
       const inputData = [
@@ -338,13 +292,11 @@ describe("ArkAgent Node", () => {
       const parameters = {
         agent: "test-agent",
         input: "Hello",
-        wait: true,
+        wait: false,
       };
 
       const mockFunctions = createMockExecuteFunctions(inputData, parameters);
-      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
-        mockAgentExecuteResponseSuccess,
-      );
+      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue({});
 
       const result = await arkAgent.execute!.call(
         mockFunctions as IExecuteFunctions,

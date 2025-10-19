@@ -18,7 +18,12 @@ describe("ArkTool Node", () => {
     });
 
     it("should have ai_tool output type", () => {
-      expect(node.description.outputs).toEqual(["ai_tool"]);
+      expect(node.description.outputs).toEqual([
+        {
+          displayName: "Tool",
+          type: "ai_tool",
+        },
+      ]);
     });
 
     it("should have tool property", () => {
@@ -61,12 +66,14 @@ describe("ArkTool Node", () => {
 
       expect(tools).toHaveLength(2);
       expect(tools[0]).toEqual({
-        name: "web-search (builtin)",
+        name: "web-search",
         value: "web-search",
+        description: "",
       });
       expect(tools[1]).toEqual({
-        name: "code-interpreter (builtin)",
+        name: "code-interpreter",
         value: "code-interpreter",
+        description: "",
       });
       expect(mockContext.helpers.request).toHaveBeenCalledWith({
         method: "GET",
@@ -102,8 +109,9 @@ describe("ArkTool Node", () => {
 
       expect(tools).toHaveLength(1);
       expect(tools[0]).toEqual({
-        name: "web-search (builtin)",
+        name: "web-search",
         value: "web-search",
+        description: "",
       });
 
       // Should have tried both endpoints
@@ -115,7 +123,7 @@ describe("ArkTool Node", () => {
       });
     });
 
-    it("should handle empty tool list", async () => {
+    it("should return default tools when API returns empty list", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -132,10 +140,14 @@ describe("ArkTool Node", () => {
 
       const tools = await node.methods.loadOptions.getTools.call(mockContext);
 
-      expect(tools).toHaveLength(0);
+      // When empty list is returned, it throws and falls back to defaults
+      expect(tools).toHaveLength(3);
+      expect(tools[0].value).toBe("web-search");
+      expect(tools[1].value).toBe("code-interpreter");
+      expect(tools[2].value).toBe("calculator");
     });
 
-    it("should return empty array if both endpoints fail", async () => {
+    it("should return default tools if both endpoints fail", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -150,7 +162,11 @@ describe("ArkTool Node", () => {
 
       const tools = await node.methods.loadOptions.getTools.call(mockContext);
 
-      expect(tools).toHaveLength(0);
+      // Falls back to default built-in tools
+      expect(tools).toHaveLength(3);
+      expect(tools[0].value).toBe("web-search");
+      expect(tools[1].value).toBe("code-interpreter");
+      expect(tools[2].value).toBe("calculator");
     });
 
     it("should handle tools without type field", async () => {
@@ -177,8 +193,9 @@ describe("ArkTool Node", () => {
 
       expect(tools).toHaveLength(1);
       expect(tools[0]).toEqual({
-        name: "custom-tool (custom)",
+        name: "custom-tool",
         value: "custom-tool",
+        description: "",
       });
     });
   });
@@ -188,6 +205,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "web-search",
         },
         credentials: {
@@ -199,7 +217,7 @@ describe("ArkTool Node", () => {
         helpers: {
           request: jest.fn().mockResolvedValue({
             spec: {
-              type: "builtin",
+              builtin: true,
               description: "Search the web",
               parameters: {
                 query: { type: "string" },
@@ -215,7 +233,6 @@ describe("ArkTool Node", () => {
       expect(result[0]).toHaveLength(1);
       expect(result[0][0].json).toMatchObject({
         name: "web-search",
-        namespace: "default",
         type: "builtin",
         description: "Search the web",
         toolName: "web-search",
@@ -232,6 +249,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "web-search",
         },
         credentials: {
@@ -247,10 +265,10 @@ describe("ArkTool Node", () => {
 
       const result = await node.execute.call(mockContext);
 
+      // If fetch fails, web-search is recognized as builtin
       expect(result[0][0].json).toMatchObject({
         name: "web-search",
-        namespace: "default",
-        type: "custom",
+        type: "builtin",
         toolName: "web-search",
       });
     });
@@ -259,6 +277,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "code-interpreter",
         },
         credentials: {
@@ -281,6 +300,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "custom-tool",
         },
         credentials: {
@@ -303,6 +323,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }, { json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "web-search",
         },
         credentials: {
@@ -314,7 +335,7 @@ describe("ArkTool Node", () => {
         helpers: {
           request: jest.fn().mockResolvedValue({
             spec: {
-              type: "builtin",
+              builtin: true,
               description: "Search the web",
             },
           }),
@@ -331,6 +352,7 @@ describe("ArkTool Node", () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
+          selectionMode: "select",
           tool: "web-search",
         },
         credentials: {
@@ -342,7 +364,7 @@ describe("ArkTool Node", () => {
         helpers: {
           request: jest.fn().mockResolvedValue({
             spec: {
-              type: "builtin",
+              builtin: true,
             },
           }),
         },
@@ -360,6 +382,7 @@ describe("ArkTool Node", () => {
         const mockContext = createMockExecuteFunctions({
           inputData: [{ json: {} }],
           parameters: {
+            selectionMode: "select",
             tool: toolName,
           },
           credentials: {
