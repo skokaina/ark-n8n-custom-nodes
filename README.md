@@ -135,9 +135,7 @@ ARK configuration:
 ### Coming Soon 🚧
 
 **Additional Nodes**:
-- [ ] **ARK Query Node** - List, filter, and replay historical agent executions
 - [ ] **ARK API Node** - Generic ARK API calls for advanced workflows
-- [ ] **MCP Server Node** - Access Model Context Protocol servers
 
 **Node Enhancements**:
 - [ ] **Stricter Authentication** - RBAC support, service account credentials
