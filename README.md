@@ -19,7 +19,7 @@ helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
 ```
 
 **Note**: The default configuration assumes:
-- ARK API is available at `http://ark-api.default.svc.cluster.local:8000`
+- ARK API is available at `http://ark-api.default.svc.cluster.local:80`
 - ARK nginx gateway is deployed in `ark-system` namespace
 - If your setup differs, override with `--set ark.apiUrl=<your-ark-api-url>`
 
@@ -42,7 +42,7 @@ Open in browser: http://localhost:5678
 
 1. In n8n UI: **Settings** → **Credentials** → **Add Credential** → **ARK API**
 2. Enter ARK API URL:
-   - In-cluster: `http://ark-api.default.svc.cluster.local:8000`
+   - In-cluster: `http://ark-api.default.svc.cluster.local:80`
    - External: `https://your-ark-api.example.com`
 3. (Optional) Add authentication if ARK is configured with SSO
 
@@ -54,7 +54,7 @@ Key configuration options in `chart/values.yaml`:
 
 ```yaml
 ark:
-  apiUrl: http://ark-api.default.svc.cluster.local:8000  # ARK API endpoint
+  apiUrl: http://ark-api.default.svc.cluster.local:80  # ARK API endpoint
 
 app:
   image:
@@ -266,7 +266,7 @@ npm run lintfix  # Auto-fix issues
 
 1. Test connectivity from n8n pod:
    ```bash
-   kubectl exec -it deployment/ark-n8n -- curl http://ark-api.default.svc.cluster.local:8000/v1/agents
+   kubectl exec -it deployment/ark-n8n -- wget -qO- http://ark-api.default.svc.cluster.local:80/v1/agents
    ```
 
 2. Verify ARK API is running:

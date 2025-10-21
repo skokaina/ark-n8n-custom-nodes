@@ -24,7 +24,7 @@ app:
     EXECUTIONS_DATA_SAVE_ON_ERROR: "all"
 
 ark:
-  apiUrl: http://ark-api.default.svc.cluster.local:8000
+  apiUrl: http://ark-api.default.svc.cluster.local:80
 
   resources:
     limits:
