@@ -14,7 +14,8 @@ export class ArkModelSelector implements INodeType {
     icon: "file:ark-model-selector.svg",
     group: ["transform"],
     version: 1,
-    description: "Select and output ARK model configuration for agent connections",
+    description:
+      "Select and output ARK model configuration for agent connections",
     defaults: {
       name: "ARK Model Selector",
     },
@@ -123,8 +124,10 @@ export class ArkModelSelector implements INodeType {
           json: true,
         });
 
-        provider = modelResponse.spec?.provider || modelResponse.type || "openai";
-        modelType = modelResponse.spec?.model || modelResponse.model || modelName;
+        provider =
+          modelResponse.spec?.provider || modelResponse.type || "openai";
+        modelType =
+          modelResponse.spec?.model || modelResponse.model || modelName;
         temperature = modelResponse.spec?.temperature || 0.7;
       } catch (error) {
         // Use defaults if fetch fails

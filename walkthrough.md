@@ -67,7 +67,7 @@ kubectl get svc ark-n8n
 
 ### Option A: Via Gateway (Recommended)
 
-Open in browser: http://ark-n8n.default.127.0.0.1.nip.io (QQ: I COULD NOT GET THIS WORK WITH WHATEVER I TRIED)
+Open in browser: http://ark-n8n.default.127.0.0.1.nip.io
 
 ### Option B: Via Port Forward
 
@@ -124,20 +124,20 @@ kubectl get agents,evaluators
 ### Import the Sample Workflow
 
 1. In n8n UI, click **Create Workflow** → More options menu (top right) → **Import from File**
-2. Select `./samples/n8n-workflows/n8n-workflow.json` (complete customer support workflow with quality gates)
-3. The workflow will load showing the complete customer support automation
+2. Select `./samples/n8n-workflows/n8n-walkthrough-workflow.json` (simple workflow with a chat trigger and calling an agent)
+3. The workflow will load showing a chat trigger for chat and calling an agent for getting it response. **NOTE:** This workflow has been created for purposes of this walkthrough and not mean't to be used as an production example
 
-<img src="./samples/image/1_full-n8n-flow.png" width="80%" alt="Full Workflow" />
+<img src="./samples/image/11_n8n_walkthrough_flow.png" width="80%" alt="Full Workflow" />
 
 ### Understanding the Workflow Flow
 
 The imported workflow demonstrates a complete AI-powered customer support system:
 
 ```
-Webhook Trigger → ARK Agent → ARK Evaluation → Quality Gate → Route Response
+Chat Trigger → Execute Agent (Execute ARK Agent) → Check Execution Status → Quality Gate
                                                       ↓
-                High Quality (≥0.8): Send to Customer + Notify Team
-                Low Quality (<0.8): Queue for Review + Alert Supervisor
+                If successful (status == "done"): Create a Success Response
+                If not successful (status != "done"): Create a Error Response
 ```
 
 ## Step 6: Configure the Workflow Nodes
@@ -146,101 +146,62 @@ Webhook Trigger → ARK Agent → ARK Evaluation → Quality Gate → Route Resp
 
 The ARK Agent node is pre-configured to use the `support-agent`:
 
-<img src="./samples/image/2_ark_egent_settings.png" width="50%" alt="ARK Agent Settings" />
+<img src="./samples/image/12_ark_execute_agent_settings.png" width="50%" alt="ARK Agent Settings" />
 
 Key settings:
 - **Agent**: `support-agent` (auto-populated from your cluster)
-- **Input**: Dynamic prompt with customer context
+- **Input**: Dynamic prompt from the chat
 - **Wait Mode**: Synchronous (waits for response)
 - **Timeout**: 30 seconds
 
 The input uses n8n expressions to build context-rich prompts:
 
-<img src="./samples/image/3_ark_agent_prompt.png" width="50%" alt="ARK Agent Prompt" />
+<img src="./samples/image/13_ark_execute_agent_prompt.png" width="50%" alt="ARK Agent Prompt" />
 
-### 2. Configure ARK Evaluation Node
+### 2. Configure Quality Gate (IF Node)
 
-The evaluation node assesses response quality across multiple dimensions:
+The IF node routes responses based on the status of the execute agent
 
-![ARK Evaluation Settings](./samples/image/4_ark_evaluation.png)
+![IF Node Configuration](./samples/image/14_walkthrough_if_node.png)
 
-Key settings:
-- **Evaluator**: `support-quality-evaluator`
-- **Input**: Customer's original issue
-- **Output**: Agent's generated response
-- **Scope**: `[relevance, accuracy, clarity, usefulness, compliance]`
-- **Min Score**: `0.8` (quality threshold)
-- **Temperature**: `0.1` (strict evaluation)
+Condition: `{{ $json.status }} == done`
 
-### 3. Configure Quality Gate (IF Node)
+### 3. Update External Endpoints (Optional)
 
-The IF node routes responses based on quality score:
-
-![IF Node Configuration](./samples/image/5_if_node.png)
-
-Condition: `{{ parseFloat($json.status.score) }} >= 0.8`
-
-### 4. Update External Endpoints (Optional)
-
-Update the HTTP Request nodes to point to your actual systems:
-- Replace webhook.site URLs with your real endpoints
-- Configure Slack credentials for notifications
-- Adjust response formats as needed
+After the format success and error response node. Update the logic to point to real actions to take such as sending an email or slack message depending on the outcome.
 
 ## Step 7: Test the Workflow
 
-### Activate the Workflow
+### Open the chat trigger
+- Click the **Open chat** button.
 
-1. Click the toggle switch to **activate** the workflow
-2. Note the webhook URL: `http://ark-n8n.default.127.0.0.1.nip.io/webhook/customer-support`
-
-### Test with High-Quality Input
+### Test with an Input (successful run)
 
 Send a clear, detailed support request:
 
-```bash
-curl -X POST http://ark-n8n.default.127.0.0.1.nip.io/webhook/customer-support \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customer_name": "Alice Johnson",
-    "customer_email": "alice@example.com",
-    "account_type": "Enterprise",
-    "priority": "high",
-    "issue": "I cannot access the API dashboard. When I try to log in, I get a 403 error. I have verified my credentials are correct."
-  }'
-```
+<img src="./samples/image/15_successful_walkthrough.png" width="50%" alt="Successful chat input" />
 
 **Expected Result**: 
-- Quality score ≥ 0.8
-- Response automatically sent to customer
-- Team notified via Slack
-- Workflow shows successful execution
+- Status == "done"
+- Workflow shows successful execution and responds with success message
 
-![Successful Execution](./samples/image/6_n8n_successful.png)
+![Successful Execution](./samples/image/16_successful_execution.png)
 
-### Test with Low-Quality Input
+Note the lower left side chat panel
 
-Send a vague support request:
+![Successful Chat Panel](./samples/image/17_successful_chat_panel.png)
 
-```bash
-curl -X POST http://ark-n8n.default.127.0.0.1.nip.io/webhook/customer-support \
-  -H "Content-Type: application/json" \
-  -d '{
-    "customer_name": "Bob Smith",
-    "customer_email": "bob@example.com",
-    "account_type": "Free",
-    "priority": "low",
-    "issue": "Why is everything broken?"
-  }'
-```
+Here we see the formatted response, and we can continue to have a conversation with the agent sending another message/input and prompt it again and again.
+
+### Test with Input (unsuccessful run)
+
+We will still send the same input message of "Hello, what do you do?" but in this instance the agent does not succeed (eg: status != "done")
 
 **Expected Result**:
-- Quality score < 0.8
-- Response queued for human review
-- Supervisor alerted via Slack
-- Customer receives "under review" message
+- Status != "done"
+- Workflow shows successful execution and responds with error message
 
-![Successful Evaluation](./samples/image/7_successful_evaluation.png)
+![Unsuccessful Execution](./samples/image/18_unsuccessful_execution.png)
 
 ## Step 8: Build Custom Workflows
 
@@ -249,26 +210,45 @@ curl -X POST http://ark-n8n.default.127.0.0.1.nip.io/webhook/customer-support \
 Now that you understand the basics, explore all available ARK nodes:
 
 #### ARK Agent Node
-- Execute individual AI agents
+- Execute individual AI agents with simple configuration
 - Pass dynamic inputs using n8n expressions
-- Control execution parameters (timeout, temperature)
-- Access response metadata and usage stats
+- Basic agent execution with wait mode control
+- Ideal for straightforward agent queries
 
-#### ARK Model Node  
-- Direct model access for specialized tasks
-- Useful for data transformation and analysis
-- Lower-level control than agent abstraction
+#### ARK Agent Advanced Node
+- Advanced agent execution with dynamic configuration
+- Supports memory, session management, and custom tools
+- Multiple input types: Chat Model, Memory, and Tools
+- Configuration modes for flexible runtime behavior
+- Perfect for complex, stateful agent interactions
+
+#### ARK Model Selector Node
+- Select and configure ARK models for agent connections
+- Dynamic model selection from your ARK cluster
+- Connects to ARK Agent Advanced via model input
 
 #### ARK Team Node
 - Orchestrate multi-agent collaborations
 - Define agent roles and interactions
 - Manage complex, multi-step AI workflows
+- Execute team-based agent conversations
 
 #### ARK Evaluation Node
 - Quality assessment and scoring
 - Multi-dimensional evaluation (accuracy, relevance, etc.)
 - Configurable thresholds for quality gates
 - Support for both direct and query-based evaluation
+
+#### ARK Memory Node
+- Select and configure memory resources for agents
+- Connect to ARK Agent Advanced for persistent context
+- Manage conversation history and agent memory
+
+#### ARK Tool Node
+- Select and configure tools for agent access
+- Support for built-in, custom, and MCP tools
+- Connect multiple tools to ARK Agent Advanced
+- Enable agents to use external services and APIs
 
 ### Example: Simple Agent Query
 

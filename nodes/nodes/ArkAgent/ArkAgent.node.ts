@@ -52,7 +52,8 @@ export class ArkAgent implements INodeType {
         name: "wait",
         type: "boolean",
         default: true,
-        description: "Whether to wait for the query to complete (when false, streaming is enabled)",
+        description:
+          "Whether to wait for the query to complete (when false, streaming is enabled)",
       },
     ],
   };
@@ -116,8 +117,8 @@ export class ArkAgent implements INodeType {
           json: {
             queryName: queryName,
             status: "pending",
-            message: "Query created, not waiting for completion"
-          }
+            message: "Query created, not waiting for completion",
+          },
         });
         continue;
       }
@@ -127,7 +128,7 @@ export class ArkAgent implements INodeType {
       let response: any = null;
 
       while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
 
         const queryStatus = await this.helpers.request({
           method: "GET",
@@ -139,7 +140,9 @@ export class ArkAgent implements INodeType {
           response = queryStatus;
           break;
         } else if (queryStatus.status?.phase === "error") {
-          throw new Error(`Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`);
+          throw new Error(
+            `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+          );
         }
 
         attempts++;
