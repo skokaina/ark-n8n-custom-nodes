@@ -248,45 +248,28 @@ npm run lint
 npm run lintfix  # Auto-fix issues
 ```
 
+## Production Considerations
+
+### Security
+1. **Enable Authentication**: Configure n8n user accounts
+2. **Use HTTPS**: Set up TLS certificates 
+3. **Network Policies**: Restrict cluster access
+4. **RBAC**: Implement proper Kubernetes permissions
+
+### Monitoring
+1. **Workflow Metrics**: Monitor execution success/failure rates
+2. **Resource Usage**: Track CPU/memory consumption  
+3. **ARK Integration**: Monitor agent response times and costs
+4. **Error Tracking**: Set up alerting for failed workflows
+
+### Scaling
+1. **Horizontal Scaling**: Multiple n8n replicas with shared storage
+2. **Agent Scaling**: Configure ARK agent auto-scaling
+3. **Evaluation Scaling**: Distribute evaluation workloads
+4. **Database Scaling**: Use external database for workflows
+
 ## Troubleshooting
-
-### Nodes not appearing in n8n
-
-1. Check custom nodes are installed:
-   ```bash
-   kubectl exec -it deployment/ark-n8n -- npm list -g n8n-nodes-ark
-   ```
-
-2. Verify environment variable:
-   ```bash
-   kubectl exec -it deployment/ark-n8n -- env | grep N8N_CUSTOM_EXTENSIONS
-   ```
-
-### ARK API connection errors
-
-1. Test connectivity from n8n pod:
-   ```bash
-   kubectl exec -it deployment/ark-n8n -- wget -qO- http://ark-api.default.svc.cluster.local:80/v1/agents
-   ```
-
-2. Verify ARK API is running:
-   ```bash
-   kubectl get pods -n default | grep ark-api
-   ```
-
-3. Check ARK API URL in credentials matches actual endpoint
-
-### Workflows failing to execute
-
-1. Check n8n logs:
-   ```bash
-   kubectl logs deployment/ark-n8n -f
-   ```
-
-2. Verify ARK resources exist (agents, models, evaluators):
-   ```bash
-   kubectl get agents,models,evaluators
-   ```
+[Troubleshooting guide](./troubleshooting.md)
 
 ## Contributing
 
@@ -318,3 +301,4 @@ MIT
 - [ARK Documentation](https://mckinsey.github.io/agents-at-scale-ark/)
 - [n8n Documentation](https://docs.n8n.io/)
 - [Creating n8n Nodes](https://docs.n8n.io/integrations/creating-nodes/)
+
