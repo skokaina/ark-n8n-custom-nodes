@@ -33,7 +33,8 @@ export class ArkApi implements ICredentialType {
       },
       default: "",
       required: false,
-      description: "Optional API key for authentication (format: pk-ark-xxx:sk-ark-xxx)",
+      description:
+        "Optional API key for authentication (format: pk-ark-xxx:sk-ark-xxx)",
       placeholder: "pk-ark-xxx:sk-ark-xxx",
     },
     {
@@ -45,7 +46,8 @@ export class ArkApi implements ICredentialType {
       },
       default: "",
       required: false,
-      description: "Optional API token for authentication (legacy, use API Key instead)",
+      description:
+        "Optional API token for authentication (legacy, use API Key instead)",
     },
   ];
 }

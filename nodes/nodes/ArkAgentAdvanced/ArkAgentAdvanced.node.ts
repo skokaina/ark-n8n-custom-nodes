@@ -23,7 +23,8 @@ export class ArkAgentAdvanced implements INodeType {
     icon: "file:ark-agent-advanced.svg",
     group: ["transform"],
     version: 1,
-    description: "Execute ARK agents with dynamic configuration, memory, and session management",
+    description:
+      "Execute ARK agents with dynamic configuration, memory, and session management",
     defaults: {
       name: "ARK Agent Advanced",
     },
@@ -73,16 +74,19 @@ export class ArkAgentAdvanced implements INodeType {
           {
             name: "Use Pre-configured Agent",
             value: "static",
-            description: "Agent's model and tools are already configured in ARK",
+            description:
+              "Agent's model and tools are already configured in ARK",
           },
           {
             name: "Update Agent Configuration",
             value: "dynamic",
-            description: "Update agent's model and tools from connected sub-nodes before execution",
+            description:
+              "Update agent's model and tools from connected sub-nodes before execution",
           },
         ],
         default: "static",
-        description: "Choose whether to use agent as-is or dynamically configure it",
+        description:
+          "Choose whether to use agent as-is or dynamically configure it",
       },
       {
         displayName: "Agent",
@@ -113,14 +117,16 @@ export class ArkAgentAdvanced implements INodeType {
         type: "string",
         default: "",
         placeholder: "user-123-session or leave empty for auto-generated",
-        description: "Unique identifier for conversation continuity when memory is connected. Same session ID maintains conversation history. Leave empty to auto-generate from workflow context.",
+        description:
+          "Unique identifier for conversation continuity when memory is connected. Same session ID maintains conversation history. Leave empty to auto-generate from workflow context.",
       },
       {
         displayName: "Wait for Completion",
         name: "wait",
         type: "boolean",
         default: true,
-        description: "Whether to wait for the query to complete. If disabled, query runs asynchronously.",
+        description:
+          "Whether to wait for the query to complete. If disabled, query runs asynchronously.",
       },
       {
         displayName: "Timeout",
@@ -193,7 +199,9 @@ export class ArkAgentAdvanced implements INodeType {
             });
           }
         } catch (error: any) {
-          throw new Error(`Failed to update agent configuration: ${error.message}`);
+          throw new Error(
+            `Failed to update agent configuration: ${error.message}`,
+          );
         }
       }
 
@@ -235,7 +243,7 @@ export class ArkAgentAdvanced implements INodeType {
               agentName: agentName,
               memoryRef: memoryRef?.name || null,
             },
-            pairedItem: { item: i }
+            pairedItem: { item: i },
           });
           continue;
         }
@@ -262,7 +270,7 @@ export class ArkAgentAdvanced implements INodeType {
 
         returnData.push({
           json: output,
-          pairedItem: { item: i }
+          pairedItem: { item: i },
         });
       } catch (error: any) {
         throw new Error(`Query execution failed: ${error.message}`);

@@ -5,7 +5,7 @@ import { IExecuteFunctions } from "n8n-workflow";
  */
 export function getSessionId(
   context: IExecuteFunctions,
-  itemIndex: number
+  itemIndex: number,
 ): string {
   // Get user-provided session ID (supports expressions)
   let sessionId = context.getNodeParameter("sessionId", itemIndex) as string;
@@ -28,41 +28,35 @@ export function getSessionId(
  */
 export async function extractModelRef(
   context: IExecuteFunctions,
-  itemIndex: number
+  itemIndex: number,
 ): Promise<{ name: string; namespace: string } | null> {
   try {
     // Attempt to get connected language model node data
-    // Note: This is a placeholder - n8n's getInputConnectionData may work differently
-    // We'll need to test and adjust based on actual n8n API
     const connectedModel = await context.getInputConnectionData(
       "ai_languageModel",
-      itemIndex
+      itemIndex,
     );
 
-    if (!connectedModel) {
-      return null;
-    }
-
     // Extract model information from connected node
-    // The structure depends on what n8n model nodes provide
-    // This is a best-guess implementation that may need adjustment
-    const modelData = connectedModel as any;
-
-    // Try to extract model name from various possible fields
-    const modelName =
-      modelData.model ||
-      modelData.modelName ||
-      modelData.name ||
-      "default";
-
-    return {
-      name: modelName,
-      namespace: modelData.namespace || "default",
-    };
+    return extractModelFromData(connectedModel);
   } catch (error) {
-    // No model connected or error retrieving
     return null;
   }
+}
+
+function extractModelFromData(
+  modelData: any,
+): { name: string; namespace: string } | null {
+  if (!modelData) return null;
+
+  // Try to extract model name from various possible fields
+  const modelName =
+    modelData.model || modelData.modelName || modelData.name || "default";
+
+  return {
+    name: modelName,
+    namespace: modelData.namespace || "default",
+  };
 }
 
 /**
@@ -70,13 +64,13 @@ export async function extractModelRef(
  */
 export async function extractToolsConfig(
   context: IExecuteFunctions,
-  itemIndex: number
+  itemIndex: number,
 ): Promise<Array<{ type: string; name: string }> | null> {
   try {
     // Attempt to get connected tool nodes data
     const connectedTools = await context.getInputConnectionData(
       "ai_tool",
-      itemIndex
+      itemIndex,
     );
 
     if (!connectedTools) {
@@ -95,11 +89,7 @@ export async function extractToolsConfig(
 
       // Determine if it's a built-in ARK tool or custom
       // You may need to maintain a list of known ARK built-in tools
-      const builtinTools = [
-        "web-search",
-        "code-interpreter",
-        "calculator",
-      ];
+      const builtinTools = ["web-search", "code-interpreter", "calculator"];
       const toolType = builtinTools.includes(toolName) ? "builtin" : "custom";
 
       return {
@@ -121,12 +111,12 @@ export async function extractToolsConfig(
  */
 export async function extractMemoryRef(
   context: IExecuteFunctions,
-  itemIndex: number
+  itemIndex: number,
 ): Promise<{ name: string; namespace: string } | null> {
   try {
     const connectedMemory = await context.getInputConnectionData(
       "ai_memory",
-      itemIndex
+      itemIndex,
     );
 
     if (!connectedMemory) {
@@ -155,7 +145,7 @@ export async function patchAgent(
   config: {
     modelRef?: { name: string; namespace: string } | null;
     tools?: Array<{ type: string; name: string }> | null;
-  }
+  },
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
   const apiKey = credentials.apiKey as string | undefined;
@@ -203,7 +193,7 @@ export async function postQuery(
   baseUrl: string,
   namespace: string,
   queryName: string,
-  querySpec: any
+  querySpec: any,
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
   const apiKey = credentials.apiKey as string | undefined;
@@ -241,7 +231,7 @@ export async function pollQueryStatus(
   baseUrl: string,
   namespace: string,
   queryName: string,
-  maxAttempts: number = 60
+  maxAttempts: number = 60,
 ): Promise<any> {
   const credentials = await context.getCredentials("arkApi");
   const apiKey = credentials.apiKey as string | undefined;
@@ -275,7 +265,7 @@ export async function pollQueryStatus(
       break;
     } else if (queryStatus.status?.phase === "error") {
       throw new Error(
-        `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`
+        `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
       );
     }
 

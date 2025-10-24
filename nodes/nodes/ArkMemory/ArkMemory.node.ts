@@ -14,7 +14,8 @@ export class ArkMemory implements INodeType {
     icon: "file:ark-memory.svg",
     group: ["transform"],
     version: 1,
-    description: "Select and output ARK memory configuration for agent connections",
+    description:
+      "Select and output ARK memory configuration for agent connections",
     defaults: {
       name: "ARK Memory",
     },

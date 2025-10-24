@@ -14,7 +14,8 @@ export class ArkTool implements INodeType {
     icon: "file:ark-tool.svg",
     group: ["transform"],
     version: 1,
-    description: "Select and output ARK tool configuration for agent connections",
+    description:
+      "Select and output ARK tool configuration for agent connections",
     defaults: {
       name: "ARK Tool",
     },
@@ -146,7 +147,8 @@ export class ArkTool implements INodeType {
           if (Array.isArray(tools) && tools.length > 0) {
             return tools.map((tool: any) => {
               const toolName = tool.metadata?.name || tool.name;
-              const toolDescription = tool.spec?.description || tool.description || "";
+              const toolDescription =
+                tool.spec?.description || tool.description || "";
 
               return {
                 name: `${toolName}${toolDescription ? ` - ${toolDescription}` : ""}`,

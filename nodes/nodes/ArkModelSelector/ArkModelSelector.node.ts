@@ -5,6 +5,8 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  ISupplyDataFunctions,
+  SupplyData,
 } from "n8n-workflow";
 
 export class ArkModelSelector implements INodeType {
@@ -14,7 +16,8 @@ export class ArkModelSelector implements INodeType {
     icon: "file:ark-model-selector.svg",
     group: ["transform"],
     version: 1,
-    description: "Select and output ARK model configuration for agent connections",
+    description:
+      "Select and output ARK model configuration for agent connections",
     defaults: {
       name: "ARK Model Selector",
     },
@@ -123,8 +126,10 @@ export class ArkModelSelector implements INodeType {
           json: true,
         });
 
-        provider = modelResponse.spec?.provider || modelResponse.type || "openai";
-        modelType = modelResponse.spec?.model || modelResponse.model || modelName;
+        provider =
+          modelResponse.spec?.provider || modelResponse.type || "openai";
+        modelType =
+          modelResponse.spec?.model || modelResponse.model || modelName;
         temperature = modelResponse.spec?.temperature || 0.7;
       } catch (error) {
         // Use defaults if fetch fails
@@ -148,5 +153,22 @@ export class ArkModelSelector implements INodeType {
     }
 
     return [returnData];
+  }
+
+  async supplyData(
+    this: ISupplyDataFunctions,
+    itemIndex: number,
+  ): Promise<SupplyData> {
+    const credentials = await this.getCredentials("arkApi");
+    const namespace = (credentials.namespace as string) || "default";
+    const modelName = this.getNodeParameter("model", itemIndex) as string;
+
+    const modelData = {
+      name: modelName,
+      namespace: namespace,
+      modelName: modelName,
+    };
+
+    return { response: modelData };
   }
 }

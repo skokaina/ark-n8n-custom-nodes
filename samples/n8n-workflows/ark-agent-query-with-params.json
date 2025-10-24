@@ -25,38 +25,22 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=http://ark-api.default.svc.cluster.local/v1/agents/{{ $json.agentName }}/execute",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "input",
-              "value": "={{ $json.userInput }}"
-            },
-            {
-              "name": "wait",
-              "value": true
-            },
-            {
-              "name": "timeout",
-              "value": "={{ $json.timeout }}"
-            },
-            {
-              "name": "sessionId",
-              "value": "={{ $json.sessionId }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 65000
-        }
+        "agent": "={{ $json.agentName }}",
+        "input": "={{ $json.userInput }}",
+        "wait": true,
+        "timeout": "={{ $json.timeout }}"
       },
+      "type": "CUSTOM.arkAgent",
+      "typeVersion": 1,
+      "position": [650, 300],
       "id": "execute-agent-param",
       "name": "Execute Agent",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [650, 300]
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
     },
     {
       "parameters": {
