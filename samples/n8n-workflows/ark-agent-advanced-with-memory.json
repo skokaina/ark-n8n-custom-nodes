@@ -18,12 +18,12 @@
     {
       "parameters": {
         "selectionMode": "select",
-        "tool": "web-search"
+        "toolName": "web-search"
       },
+      "type": "CUSTOM.arkTool",
+      "typeVersion": 1,
       "id": "ark-tool-web-search",
       "name": "ARK Tool: Web Search",
-      "type": "n8n-nodes-ark.arkTool",
-      "typeVersion": 1,
       "position": [450, 200],
       "credentials": {
         "arkApi": {
@@ -35,12 +35,12 @@
     {
       "parameters": {
         "selectionMode": "select",
-        "tool": "calculator"
+        "toolName": "calculator"
       },
+      "type": "CUSTOM.arkTool",
+      "typeVersion": 1,
       "id": "ark-tool-calculator",
       "name": "ARK Tool: Calculator",
-      "type": "n8n-nodes-ark.arkTool",
-      "typeVersion": 1,
       "position": [450, 300],
       "credentials": {
         "arkApi": {
@@ -61,7 +61,7 @@
       },
       "id": "ark-agent-advanced",
       "name": "ARK Agent Advanced",
-      "type": "n8n-nodes-ark.arkAgentAdvanced",
+      "type": "CUSTOM.arkAgentAdvanced",
       "typeVersion": 1,
       "position": [650, 300],
       "credentials": {
@@ -81,7 +81,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [1000, 300]
     }
   ],
   "pinData": {},
