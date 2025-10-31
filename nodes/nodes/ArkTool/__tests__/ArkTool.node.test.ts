@@ -1,5 +1,5 @@
 import { ArkTool } from "../ArkTool.node";
-import { createMockExecuteFunctions } from "../../../test-helpers/mocks";
+import { createMockExecuteFunctions, createMockSupplyDataFunctions } from "../../../test-helpers/mocks";
 
 describe("ArkTool Node", () => {
   let node: ArkTool;
@@ -240,10 +240,54 @@ describe("ArkTool Node", () => {
 
       expect(mockContext.helpers.request).toHaveBeenCalledWith({
         method: "GET",
-        url: "http://ark-api:8000/v1/namespaces/default/tools/web-search",
+        url: "http://ark-api:8000/v1/tools/web-search?namespace=default",
         json: true,
       });
     });
+
+    it("should fetch and return custom tool details", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: {} }],
+        parameters: {
+          selectionMode: "select",
+          tool: "custom-tool",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              description: "Search the web",
+              parameters: {
+                query: { type: "string" },
+              },
+            },
+          }),
+        },
+      });
+
+      const result = await node.execute.call(mockContext);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveLength(1);
+      expect(result[0][0].json).toMatchObject({
+        name: "custom-tool",
+        type: "custom",
+        description: "Search the web",
+        toolName: "custom-tool",
+      });
+
+      expect(mockContext.helpers.request).toHaveBeenCalledWith({
+        method: "GET",
+        url: "http://ark-api:8000/v1/tools/custom-tool?namespace=default",
+        json: true,
+      });
+    });
+
 
     it("should use default values if fetch fails", async () => {
       const mockContext = createMockExecuteFunctions({
@@ -353,6 +397,33 @@ describe("ArkTool Node", () => {
         inputData: [{ json: {} }],
         parameters: {
           selectionMode: "select",
+          tool: "mcp-example",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              mcp: true,
+            },
+          }),
+        },
+      });
+
+      const result = await node.execute.call(mockContext);
+
+      expect(result[0][0].pairedItem).toEqual({ item: 0 });
+    });
+
+    it("should include pairedItem in output", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: {} }],
+        parameters: {
+          selectionMode: "select",
           tool: "web-search",
         },
         credentials: {
@@ -374,13 +445,210 @@ describe("ArkTool Node", () => {
 
       expect(result[0][0].pairedItem).toEqual({ item: 0 });
     });
+  });
 
-    it("should handle all builtin tool names", async () => {
+  describe("supplyData() Method", () => {
+    it("should return tool data for select mode with builtin tool", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "web-search",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              builtin: true,
+              description: "Search the web for information",
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toMatchObject({
+        name: "web-search",
+        namespace: "default",
+        type: "builtin",
+        description: "Search the web for information",
+        toolName: "web-search",
+      });
+
+      expect(mockContext.helpers.request).toHaveBeenCalledWith({
+        method: "GET",
+        url: "http://ark-api:8000/v1/tools/web-search?namespace=default",
+        json: true,
+      });
+    });
+
+    it("should return tool data for select mode with MCP tool", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "mcp-example",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              mcp: true,
+              description: "MCP server tool",
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toMatchObject({
+        name: "mcp-example",
+        namespace: "default",
+        type: "mcp",
+        description: "MCP server tool",
+        toolName: "mcp-example",
+      });
+    });
+
+    it("should return tool data for select mode with custom tool", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "custom-tool",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              description: "Custom tool implementation",
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toMatchObject({
+        name: "custom-tool",
+        namespace: "default",
+        type: "custom",
+        description: "Custom tool implementation",
+        toolName: "custom-tool",
+      });
+    });
+
+    it("should return tool data for manual mode", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "manual",
+          toolName: "manual-tool",
+          toolType: "builtin",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "custom",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              builtin: true,
+              description: "Manually specified tool",
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toMatchObject({
+        name: "manual-tool",
+        namespace: "custom",
+        type: "builtin",
+        description: "Manually specified tool",
+        toolName: "manual-tool",
+      });
+    });
+
+    it("should handle API errors gracefully for builtin tools", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "web-search",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockRejectedValue(new Error("API unavailable")),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      // Should fallback to builtin type for known tools
+      expect(result.response).toMatchObject({
+        name: "web-search",
+        namespace: "default",
+        type: "builtin",
+        description: "",
+        toolName: "web-search",
+      });
+    });
+
+    it("should handle API errors gracefully for unknown tools", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "unknown-tool",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "default",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockRejectedValue(new Error("Tool not found")),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      // Should fallback to custom type for unknown tools
+      expect(result.response).toMatchObject({
+        name: "unknown-tool",
+        namespace: "default",
+        type: "custom",
+        description: "",
+        toolName: "unknown-tool",
+      });
+    });
+
+    it("should handle different builtin tool names correctly", async () => {
       const builtinTools = ["web-search", "code-interpreter", "calculator"];
-
+      
       for (const toolName of builtinTools) {
-        const mockContext = createMockExecuteFunctions({
-          inputData: [{ json: {} }],
+        const mockContext = createMockSupplyDataFunctions({
           parameters: {
             selectionMode: "select",
             tool: toolName,
@@ -396,11 +664,74 @@ describe("ArkTool Node", () => {
           },
         });
 
-        const result = await node.execute.call(mockContext);
+        const result = await node.supplyData.call(mockContext, 0);
 
-        expect(result[0][0].json.type).toBe("builtin");
-        expect(result[0][0].json.name).toBe(toolName);
+        expect(result.response.type).toBe("builtin");
+        expect(result.response.name).toBe(toolName);
       }
     });
+
+    it("should use custom namespace from credentials", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "test-tool",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            namespace: "custom-namespace",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              builtin: true,
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response.namespace).toBe("custom-namespace");
+      expect(mockContext.helpers.request).toHaveBeenCalledWith({
+        method: "GET",
+        url: "http://ark-api:8000/v1/tools/test-tool?namespace=custom-namespace",
+        json: true,
+      });
+    });
+
+    it("should default to 'default' namespace when not specified", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          selectionMode: "select",
+          tool: "test-tool",
+        },
+        credentials: {
+          arkApi: {
+            baseUrl: "http://ark-api:8000",
+            // namespace not specified
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            spec: {
+              builtin: true,
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response.namespace).toBe("default");
+      expect(mockContext.helpers.request).toHaveBeenCalledWith({
+        method: "GET",
+        url: "http://ark-api:8000/v1/tools/test-tool?namespace=default",
+        json: true,
+      });
+    });
   });
+
 });
