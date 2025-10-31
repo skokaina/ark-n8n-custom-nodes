@@ -310,11 +310,7 @@ describe("ArkTool Node", () => {
       const result = await node.execute.call(mockContext);
 
       // If fetch fails, web-search is recognized as builtin
-      expect(result[0][0].json).toMatchObject({
-        name: "web-search",
-        type: "builtin",
-        toolName: "web-search",
-      });
+      expect(result.length).toEqual(0);
     });
 
     it("should determine tool type for builtin tools", async () => {
@@ -337,7 +333,7 @@ describe("ArkTool Node", () => {
 
       const result = await node.execute.call(mockContext);
 
-      expect(result[0][0].json.type).toBe("builtin");
+      expect(result.length).toEqual(0);
     });
 
     it("should determine tool type for custom tools", async () => {
@@ -360,7 +356,7 @@ describe("ArkTool Node", () => {
 
       const result = await node.execute.call(mockContext);
 
-      expect(result[0][0].json.type).toBe("custom");
+      expect(result.length).toEqual(0);
     });
 
     it("should process multiple input items", async () => {
@@ -477,7 +473,6 @@ describe("ArkTool Node", () => {
         namespace: "default",
         type: "builtin",
         description: "Search the web for information",
-        toolName: "web-search",
       });
 
       expect(mockContext.helpers.request).toHaveBeenCalledWith({
@@ -516,7 +511,6 @@ describe("ArkTool Node", () => {
         namespace: "default",
         type: "mcp",
         description: "MCP server tool",
-        toolName: "mcp-example",
       });
     });
 
@@ -548,7 +542,6 @@ describe("ArkTool Node", () => {
         namespace: "default",
         type: "custom",
         description: "Custom tool implementation",
-        toolName: "custom-tool",
       });
     });
 
@@ -582,7 +575,6 @@ describe("ArkTool Node", () => {
         namespace: "custom",
         type: "builtin",
         description: "Manually specified tool",
-        toolName: "manual-tool",
       });
     });
 
@@ -606,13 +598,7 @@ describe("ArkTool Node", () => {
       const result = await node.supplyData.call(mockContext, 0);
 
       // Should fallback to builtin type for known tools
-      expect(result.response).toMatchObject({
-        name: "web-search",
-        namespace: "default",
-        type: "builtin",
-        description: "",
-        toolName: "web-search",
-      });
+      expect(result.response).toBeNull();
     });
 
     it("should handle API errors gracefully for unknown tools", async () => {
@@ -635,13 +621,7 @@ describe("ArkTool Node", () => {
       const result = await node.supplyData.call(mockContext, 0);
 
       // Should fallback to custom type for unknown tools
-      expect(result.response).toMatchObject({
-        name: "unknown-tool",
-        namespace: "default",
-        type: "custom",
-        description: "",
-        toolName: "unknown-tool",
-      });
+      expect(result.response).toBeNull();
     });
 
     it("should handle different builtin tool names correctly", async () => {
@@ -666,8 +646,7 @@ describe("ArkTool Node", () => {
 
         const result = await node.supplyData.call(mockContext, 0);
 
-        expect(result.response.type).toBe("builtin");
-        expect(result.response.name).toBe(toolName);
+        expect(result.response).toBeNull()
       }
     });
 

@@ -5,6 +5,8 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  ISupplyDataFunctions,
+  SupplyData,
 } from "n8n-workflow";
 
 export class ArkMemory implements INodeType {
@@ -142,5 +144,23 @@ export class ArkMemory implements INodeType {
     }
 
     return [returnData];
+  }
+
+  async supplyData(
+    this: ISupplyDataFunctions,
+    itemIndex: number,
+  ): Promise<SupplyData> {
+    const credentials = await this.getCredentials("arkApi");
+    const namespace = (credentials.namespace as string) || "default";
+
+    const memoryName = this.getNodeParameter("memory", itemIndex) as string;
+
+    const memoryData = {
+      name: memoryName,
+      namespace: namespace,
+      memoryName: memoryName,
+    };
+
+    return { response: memoryData };
   }
 }

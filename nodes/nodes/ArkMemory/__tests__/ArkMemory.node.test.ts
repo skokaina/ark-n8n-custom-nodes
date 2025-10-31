@@ -1,5 +1,5 @@
 import { ArkMemory } from "../ArkMemory.node";
-import { createMockExecuteFunctions } from "../../../test-helpers/mocks";
+import { createMockExecuteFunctions, createMockSupplyDataFunctions } from "../../../test-helpers/mocks";
 
 describe("ArkMemory Node", () => {
   let node: ArkMemory;
@@ -281,6 +281,24 @@ describe("ArkMemory Node", () => {
       const result = await node.execute.call(mockContext);
 
       expect(result[0][0].pairedItem).toEqual({ item: 0 });
+    });
+  });
+
+  describe("supplyData() Method", () => {
+    it("should return memory data", async () => {
+      const mockContext = createMockSupplyDataFunctions({
+        parameters: {
+          memory: "test-memory",
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toMatchObject({
+        name: "test-memory",
+        namespace: "default",
+        memoryName: "test-memory",
+      });
     });
   });
 });

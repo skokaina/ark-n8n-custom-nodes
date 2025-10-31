@@ -82,7 +82,10 @@ export async function extractToolsConfig(
       ? connectedTools
       : [connectedTools];
 
-    const tools = toolsArray.map((tool: any) => {
+    // Filter out tools that are not valid
+    const validTools = toolsArray.filter((tool: any) => tool && tool.name);
+
+    const tools = validTools.map((tool: any) => {
       // Extract tool information from ArkTool supplyData response
       const toolName = tool.name || tool.toolName || "unknown";
 

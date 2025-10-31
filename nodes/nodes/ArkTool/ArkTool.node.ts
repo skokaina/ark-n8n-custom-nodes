@@ -227,9 +227,8 @@ export class ArkTool implements INodeType {
           toolType = "custom";
         }
       } catch (error) {
-        // If fetch fails, assume builtin for common tool names
-        const builtinTools = ["web-search", "code-interpreter", "calculator"];
-        toolType = builtinTools.includes(toolName) ? "builtin" : "custom";
+        console.log("Error fetching tool details:", error);
+        continue;
       }
 
       // Output tool data in format expected by ArkAgentAdvanced
@@ -245,6 +244,10 @@ export class ArkTool implements INodeType {
         json: toolData,
         pairedItem: { item: i },
       });
+    }
+
+    if (returnData.length === 0) {
+      return [];
     }
 
     return [returnData];
@@ -293,9 +296,8 @@ export class ArkTool implements INodeType {
         toolType = "custom";
       }
     } catch (error) {
-      // If fetch fails, assume builtin for common tool names
-      const builtinTools = ["web-search", "code-interpreter", "calculator"];
-      toolType = builtinTools.includes(toolName) ? "builtin" : "custom";
+      console.log("Error fetching tool details:", error);
+      return { response: null };
     }
 
     const toolData = {
@@ -303,7 +305,6 @@ export class ArkTool implements INodeType {
       namespace: namespace,
       type: toolType,
       description: toolDescription,
-      toolName: toolName,
     };
 
     return { response: toolData };
