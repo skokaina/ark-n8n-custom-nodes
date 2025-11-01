@@ -128,8 +128,8 @@ describe("arkHelpers", () => {
     it("should extract tools from connected nodes (array)", async () => {
       const mockContext = createMockExecuteFunctions({});
       mockContext.getInputConnectionData = jest.fn().mockResolvedValue([
-        { name: "web-search" },
-        { name: "calculator" },
+        { name: "web-search", type: "builtin" },
+        { name: "calculator", type: "builtin" },
       ]);
 
       const tools = await extractToolsConfig(mockContext, 0);
@@ -145,6 +145,7 @@ describe("arkHelpers", () => {
       const mockContext = createMockExecuteFunctions({});
       mockContext.getInputConnectionData = jest.fn().mockResolvedValue({
         name: "web-search",
+        type: "builtin",
       });
 
       const tools = await extractToolsConfig(mockContext, 0);
@@ -153,21 +154,11 @@ describe("arkHelpers", () => {
       expect(tools![0]).toEqual({ type: "builtin", name: "web-search" });
     });
 
-    it("should identify builtin tools", async () => {
-      const mockContext = createMockExecuteFunctions({});
-      mockContext.getInputConnectionData = jest.fn().mockResolvedValue({
-        name: "code-interpreter",
-      });
-
-      const tools = await extractToolsConfig(mockContext, 0);
-
-      expect(tools![0].type).toBe("builtin");
-    });
-
     it("should identify custom tools", async () => {
       const mockContext = createMockExecuteFunctions({});
       mockContext.getInputConnectionData = jest.fn().mockResolvedValue({
         name: "my-custom-tool",
+        type: "custom",
       });
 
       const tools = await extractToolsConfig(mockContext, 0);

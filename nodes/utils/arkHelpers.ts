@@ -82,15 +82,16 @@ export async function extractToolsConfig(
       ? connectedTools
       : [connectedTools];
 
-    const tools = toolsArray.map((tool: any) => {
-      // Extract tool information
-      // This structure depends on what n8n tool nodes provide
+    // Filter out tools that are not valid
+    const validTools = toolsArray.filter((tool: any) => tool && tool.name);
+
+    const tools = validTools.map((tool: any) => {
+      // Extract tool information from ArkTool supplyData response
       const toolName = tool.name || tool.toolName || "unknown";
 
-      // Determine if it's a built-in ARK tool or custom
-      // You may need to maintain a list of known ARK built-in tools
-      const builtinTools = ["web-search", "code-interpreter", "calculator"];
-      const toolType = builtinTools.includes(toolName) ? "builtin" : "custom";
+      // Use the tool type from the ArkTool node's supplyData function
+      // This comes from either the ARK API response or user manual input
+      const toolType = tool.type || "custom";
 
       return {
         type: toolType,

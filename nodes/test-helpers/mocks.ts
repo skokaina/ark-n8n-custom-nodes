@@ -3,6 +3,7 @@ import {
   ILoadOptionsFunctions,
   INodeExecutionData,
   INodePropertyOptions,
+  ISupplyDataFunctions,
 } from 'n8n-workflow';
 
 export function createMockExecuteFunctions(
@@ -90,5 +91,32 @@ export function createMockLoadOptionsFunctions(): Partial<ILoadOptionsFunctions>
 export function createMockNodeExecutionData(json: any): INodeExecutionData {
   return {
     json,
+  };
+}
+
+export function createMockSupplyDataFunctions(
+  options?: {
+    parameters?: Record<string, any>;
+    credentials?: Record<string, any>;
+    helpers?: any;
+  }
+): Partial<ISupplyDataFunctions> & { helpers: any } {
+  const nodeParameters = options?.parameters || {};
+  const creds = options?.credentials || {
+    arkApi: {
+      baseUrl: 'http://ark-api.default.svc.cluster.local',
+      token: 'test-token',
+    },
+  };
+  const helpers = options?.helpers || { request: jest.fn() };
+
+  return {
+    getNodeParameter: (parameterName: string, itemIndex: number) => {
+      return nodeParameters[parameterName];
+    },
+    getCredentials: async <T extends object>(type: string, itemIndex?: number) => {
+      return (creds[type] || creds) as T;
+    },
+    helpers: helpers as any,
   };
 }
