@@ -5,6 +5,8 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  ISupplyDataFunctions,
+  SupplyData,
 } from "n8n-workflow";
 
 export class ArkTool implements INodeType {
@@ -201,36 +203,32 @@ export class ArkTool implements INodeType {
       if (selectionMode === "select") {
         // Get selected tool from dropdown
         toolName = this.getNodeParameter("tool", i) as string;
-
-        // Fetch tool details from ARK API
-        try {
-          const toolResponse = await this.helpers.request({
-            method: "GET",
-            url: `${baseUrl}/v1/namespaces/${namespace}/tools/${toolName}`,
-            json: true,
-          });
-
-          toolDescription =
-            toolResponse.spec?.description || toolResponse.description || "";
-
-          // Determine tool type based on ARK tool object
-          // This is a best guess - may need adjustment based on actual ARK API response
-          if (toolResponse.spec?.mcp || toolResponse.type === "mcp") {
-            toolType = "mcp";
-          } else if (toolResponse.spec?.builtin || toolResponse.builtin) {
-            toolType = "builtin";
-          } else {
-            toolType = "custom";
-          }
-        } catch (error) {
-          // If fetch fails, assume builtin for common tool names
-          const builtinTools = ["web-search", "code-interpreter", "calculator"];
-          toolType = builtinTools.includes(toolName) ? "builtin" : "custom";
-        }
       } else {
-        // Manual mode
         toolName = this.getNodeParameter("toolName", i) as string;
-        toolType = this.getNodeParameter("toolType", i) as string;
+      }
+
+      // Fetch tool details from ARK API
+      try {
+        const toolResponse = await this.helpers.request({
+          method: "GET",
+          url: `${baseUrl}/v1/tools/${toolName}?namespace=${namespace}`,
+          json: true,
+        });
+
+        toolDescription =
+          toolResponse.spec?.description || toolResponse.description || "";
+
+        // Determine tool type based on ARK tool object
+        if (toolResponse.spec?.mcp || toolResponse.type === "mcp") {
+          toolType = "mcp";
+        } else if (toolResponse.spec?.builtin || toolResponse.builtin) {
+          toolType = "builtin";
+        } else {
+          toolType = "custom";
+        }
+      } catch (error) {
+        console.log("Error fetching tool details:", error);
+        continue;
       }
 
       // Output tool data in format expected by ArkAgentAdvanced
@@ -248,6 +246,67 @@ export class ArkTool implements INodeType {
       });
     }
 
+    if (returnData.length === 0) {
+      return [];
+    }
+
     return [returnData];
+  }
+
+  async supplyData(
+    this: ISupplyDataFunctions,
+    itemIndex: number,
+  ): Promise<SupplyData> {
+    const credentials = await this.getCredentials("arkApi");
+    const baseUrl = credentials.baseUrl as string;
+    const namespace = (credentials.namespace as string) || "default";
+    const selectionMode = this.getNodeParameter(
+      "selectionMode",
+      itemIndex,
+    ) as string;
+
+    let toolName: string;
+    let toolType: string;
+    let toolDescription = "";
+
+    if (selectionMode === "select") {
+      // Get selected tool from dropdown
+      toolName = this.getNodeParameter("tool", itemIndex) as string;
+    } else {
+      toolName = this.getNodeParameter("toolName", itemIndex) as string;
+    }
+
+    // Fetch tool details from ARK API
+    try {
+      const toolResponse = await this.helpers.request({
+        method: "GET",
+        url: `${baseUrl}/v1/tools/${toolName}?namespace=${namespace}`,
+        json: true,
+      });
+
+      toolDescription =
+        toolResponse.spec?.description || toolResponse.description || "";
+
+      // Determine tool type based on ARK tool object
+      if (toolResponse.spec?.mcp || toolResponse.type === "mcp") {
+        toolType = "mcp";
+      } else if (toolResponse.spec?.builtin || toolResponse.builtin) {
+        toolType = "builtin";
+      } else {
+        toolType = "custom";
+      }
+    } catch (error) {
+      console.log("Error fetching tool details:", error);
+      return { response: null };
+    }
+
+    const toolData = {
+      name: toolName,
+      namespace: namespace,
+      type: toolType,
+      description: toolDescription,
+    };
+
+    return { response: toolData };
   }
 }
