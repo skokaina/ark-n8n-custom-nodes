@@ -3,17 +3,13 @@ FROM docker.n8n.io/n8nio/n8n:${N8N_VERSION}
 
 USER root
 
-# Copy pre-built nodes to temporary location
-COPY nodes/package.json /tmp/n8n-nodes-ark/
-COPY nodes/package-lock.json /tmp/n8n-nodes-ark/
-COPY nodes/dist /tmp/n8n-nodes-ark/dist/
-
-# Install the package globally so n8n can discover it
-WORKDIR /tmp/n8n-nodes-ark
-RUN npm install -g .
+# Copy custom nodes to a permanent location
+RUN mkdir -p /opt/n8n-nodes-ark
+COPY nodes/package.json /opt/n8n-nodes-ark/
+COPY nodes/dist /opt/n8n-nodes-ark/dist/
 
 # Set environment variable to allow external modules
-ENV N8N_CUSTOM_EXTENSIONS="/usr/local/lib/node_modules/n8n-nodes-ark"
+ENV N8N_CUSTOM_EXTENSIONS="/opt/n8n-nodes-ark"
 
 USER node
 

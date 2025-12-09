@@ -13,7 +13,7 @@ export class ArkTool implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Tool",
     name: "arkTool",
-    icon: "file:ark-tool.svg",
+    icon: "fa:wrench",
     group: ["transform"],
     version: 1,
     description:

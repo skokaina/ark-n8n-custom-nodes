@@ -1,0 +1,74 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ark-ingress
+  namespace: default
+  annotations:
+    # WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "n8n-nginx-proxy"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+
+    # CRITICAL: Disable buffering for webhooks to work with chat
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+
+    # Enable streaming responses
+    nginx.ingress.kubernetes.io/x-accel-buffering: "no"
+
+    # Path rewriting
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # n8n routes - strip /n8n prefix and route through NGINX proxy
+      - path: /n8n(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: n8n-nginx-proxy
+            port:
+              number: 80
+
+      # ARK API routes - pass through v1 prefix
+      - path: /()(v1.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: ark-api
+            port:
+              number: 80
+
+      # Chat WebSocket endpoint - route to n8n without rewriting
+      - path: /()(chat.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: n8n-nginx-proxy
+            port:
+              number: 80
+
+      # ARK Dashboard with /dashboard prefix stripped
+      - path: /dashboard(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: ark-dashboard
+            port:
+              number: 3000
+
+      # Default route to dashboard
+      - path: /()(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: ark-dashboard
+            port:
+              number: 3000

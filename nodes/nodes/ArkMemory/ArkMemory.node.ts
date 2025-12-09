@@ -13,7 +13,7 @@ export class ArkMemory implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Memory",
     name: "arkMemory",
-    icon: "file:ark-memory.svg",
+    icon: "fa:database",
     group: ["transform"],
     version: 1,
     description:

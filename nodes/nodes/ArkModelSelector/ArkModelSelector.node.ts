@@ -13,7 +13,7 @@ export class ArkModelSelector implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Model Selector",
     name: "arkModelSelector",
-    icon: "file:ark-model-selector.svg",
+    icon: "fa:sliders-h",
     group: ["transform"],
     version: 1,
     description:
