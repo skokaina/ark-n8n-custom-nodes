@@ -50,7 +50,7 @@ describe("ArkTeam Node", () => {
     });
 
     it("should have an icon", () => {
-      expect(arkTeam.description.icon).toBe("file:ark-team.svg");
+      expect(arkTeam.description.icon).toBe("fa:users");
     });
   });
 
