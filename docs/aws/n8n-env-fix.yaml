@@ -13,13 +13,13 @@ spec:
         env:
         # Existing environment variables (partial list - these get merged)
         - name: N8N_HOST
-          value: k8s-ingressn-ingressn-b062f7f393-dd1419f8969379cd.elb.eu-west-2.amazonaws.com
+          value: ## {elb-hostname}
         - name: N8N_PATH
           value: /n8n/
         - name: N8N_EDITOR_BASE_URL
-          value: http://k8s-ingressn-ingressn-b062f7f393-dd1419f8969379cd.elb.eu-west-2.amazonaws.com/n8n
+          value: ## http://{elb-hostname}/n8n
         - name: WEBHOOK_URL
-          value: http://k8s-ingressn-ingressn-b062f7f393-dd1419f8969379cd.elb.eu-west-2.amazonaws.com/n8n
+          value: ## http://{elb-hostname}/n8n
         - name: N8N_PUSH_BACKEND
           value: websocket
         - name: N8N_PROTOCOL
