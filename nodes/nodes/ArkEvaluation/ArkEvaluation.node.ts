@@ -11,7 +11,7 @@ export class ArkEvaluation implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Evaluation",
     name: "arkEvaluation",
-    icon: "file:ark-evaluation.svg",
+    icon: "fa:check-circle",
     group: ["transform"],
     version: 1,
     description: "Create and execute ARK evaluations",

@@ -11,7 +11,7 @@ export class ArkModel implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Model",
     name: "arkModel",
-    icon: "file:ark-model.svg",
+    icon: "fa:brain",
     group: ["transform"],
     version: 1,
     description: "Query ARK models directly",

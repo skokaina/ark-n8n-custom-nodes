@@ -11,7 +11,7 @@ export class ArkTeam implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Team",
     name: "arkTeam",
-    icon: "file:ark-team.svg",
+    icon: "fa:users",
     group: ["transform"],
     version: 1,
     description: "Execute ARK team-based multi-agent workflows",

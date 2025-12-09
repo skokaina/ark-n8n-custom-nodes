@@ -71,7 +71,7 @@ describe("ArkAgent Node", () => {
     });
 
     it("should have an icon", () => {
-      expect(arkAgent.description.icon).toBe("file:ark-agent.svg");
+      expect(arkAgent.description.icon).toBe("fa:robot");
     });
   });
 

@@ -50,7 +50,7 @@ describe("ArkModel Node", () => {
     });
 
     it("should have an icon", () => {
-      expect(arkModel.description.icon).toBe("file:ark-model.svg");
+      expect(arkModel.description.icon).toBe("fa:brain");
     });
   });
 

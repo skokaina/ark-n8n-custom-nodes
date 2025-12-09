@@ -20,7 +20,7 @@ export class ArkAgentAdvanced implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Agent Advanced",
     name: "arkAgentAdvanced",
-    icon: "file:ark-agent-advanced.svg",
+    icon: "fa:sitemap",
     group: ["transform"],
     version: 1,
     description:

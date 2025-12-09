@@ -11,7 +11,7 @@ export class ArkAgent implements INodeType {
   description: INodeTypeDescription = {
     displayName: "ARK Agent",
     name: "arkAgent",
-    icon: "file:ark-agent.svg",
+    icon: "fa:robot",
     group: ["transform"],
     version: 1,
     description: "Execute ARK agent queries",

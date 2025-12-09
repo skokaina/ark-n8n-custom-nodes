@@ -52,7 +52,7 @@ describe("ArkEvaluation Node", () => {
     });
 
     it("should have an icon", () => {
-      expect(arkEvaluation.description.icon).toBe("file:ark-evaluation.svg");
+      expect(arkEvaluation.description.icon).toBe("fa:check-circle");
     });
   });
 

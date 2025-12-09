@@ -1,0 +1,52 @@
+---
+# Patch to fix custom node icon serving in n8n
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ark-n8n
+  namespace: default
+spec:
+  template:
+    spec:
+      containers:
+      - name: ark-n8n
+        env:
+        # Existing environment variables (partial list - these get merged)
+        - name: N8N_HOST
+          value: ## {elb-hostname}
+        - name: N8N_PATH
+          value: /n8n/
+        - name: N8N_EDITOR_BASE_URL
+          value: ## http://{elb-hostname}/n8n
+        - name: WEBHOOK_URL
+          value: ## http://{elb-hostname}/n8n
+        - name: N8N_PUSH_BACKEND
+          value: websocket
+        - name: N8N_PROTOCOL
+          value: http
+        - name: N8N_PROXY_HOPS
+          value: "1"
+        - name: N8N_SECURE_COOKIE
+          value: "false"
+        - name: N8N_RUNNERS_ENABLED
+          value: "true"
+        - name: EXECUTIONS_MODE
+          value: regular
+        - name: EXECUTIONS_DATA_SAVE_ON_SUCCESS
+          value: all
+        - name: EXECUTIONS_DATA_SAVE_ON_ERROR
+          value: all
+        - name: GENERIC_TIMEZONE
+          value: America/New_York
+        - name: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+          value: "true"
+        - name: ARK_API_URL
+          value: http://ark-api.default.svc.cluster.local:8000
+        # CRITICAL FIX: Tell n8n where custom extensions are installed
+        - name: N8N_CUSTOM_EXTENSIONS
+          value: /usr/local/lib/node_modules/n8n-nodes-ark
+        # Fix for serving static assets from custom nodes
+        - name: NODE_FUNCTION_ALLOW_BUILTIN
+          value: "*"
+        - name: NODE_FUNCTION_ALLOW_EXTERNAL
+          value: "*"
