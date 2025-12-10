@@ -93,6 +93,19 @@ export class ArkAgent implements INodeType {
 
       const queryName = `n8n-${agent}-${Date.now()}`;
 
+      // Get workflow and execution context
+      const workflow = this.getWorkflow();
+      const executionId = this.getExecutionId();
+
+      // Get session ID from chat session (if available from input data)
+      const itemData = items[i].json;
+      const chatSessionId =
+        itemData.sessionId ||
+        itemData.chatSessionId ||
+        itemData.session_id ||
+        itemData.chat_session_id ||
+        "unknown";
+
       const queryBody: any = {
         name: queryName,
         type: "user",
@@ -103,6 +116,20 @@ export class ArkAgent implements INodeType {
             name: agent,
           },
         ],
+        metadata: {
+          annotations: {
+            "ark.mckinsey.com/run-id": executionId,
+            "ark.mckinsey.com/workflow-id": workflow.id,
+            "ark.mckinsey.com/session-id": chatSessionId,
+          },
+          labels: {
+            n8n_workflow_name: workflow.name ?? "unknown",
+            n8n_workflow_id: workflow.id ?? "unknown",
+            n8n_execution_id: executionId,
+            n8n_agent_name: agent,
+            n8n_session_id: chatSessionId,
+          },
+        },
       };
 
       await this.helpers.request({

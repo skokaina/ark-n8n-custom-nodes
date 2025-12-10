@@ -205,6 +205,19 @@ export class ArkAgentAdvanced implements INodeType {
         }
       }
 
+      // Get workflow and execution context
+      const workflow = this.getWorkflow();
+      const executionId = this.getExecutionId();
+
+      // Get session ID from chat session (if available from input data)
+      const itemData = items[i].json;
+      const chatSessionId =
+        itemData.sessionId ||
+        itemData.chatSessionId ||
+        itemData.session_id ||
+        itemData.chat_session_id ||
+        "unknown";
+
       // Prepare query specification
       const queryName = `n8n-${agentName}-${Date.now()}`;
       const querySpec: any = {
@@ -216,6 +229,20 @@ export class ArkAgentAdvanced implements INodeType {
             name: agentName,
           },
         ],
+        metadata: {
+          annotations: {
+            "ark.mckinsey.com/run-id": executionId,
+            "ark.mckinsey.com/workflow-id": workflow.id,
+            "ark.mckinsey.com/session-id": sessionId,
+          },
+          labels: {
+            n8n_workflow_name: workflow.name ?? "unknown",
+            n8n_workflow_id: workflow.id ?? "unknown",
+            n8n_execution_id: executionId,
+            n8n_agent_name: chatSessionId,
+            n8n_session_id: sessionId,
+          },
+        },
         wait: wait,
         timeout: timeout,
       };
