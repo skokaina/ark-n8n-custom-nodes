@@ -208,6 +208,10 @@ export class ArkAgentAdvanced implements INodeType {
       // Get workflow and execution context
       const workflow = this.getWorkflow();
       const executionId = this.getExecutionId();
+      const workflowName = (workflow.name ?? "unknown")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_");
 
       // Get session ID from chat session (if available from input data)
       const itemData = items[i].json;
@@ -236,7 +240,7 @@ export class ArkAgentAdvanced implements INodeType {
             "ark.mckinsey.com/session-id": sessionId,
           },
           labels: {
-            n8n_workflow_name: workflow.name ?? "unknown",
+            n8n_workflow_name: workflowName,
             n8n_workflow_id: workflow.id ?? "unknown",
             n8n_execution_id: executionId,
             n8n_agent_name: chatSessionId,
