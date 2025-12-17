@@ -310,5 +310,73 @@ describe("ArkTeam Node", () => {
       expect(result[0]).toHaveLength(2);
       expect(mockFunctions.helpers!.request).toHaveBeenCalledTimes(2);
     });
+
+    it("should handle response with missing optional fields", async () => {
+      const inputData = [createMockNodeExecutionData({})];
+      const parameters = {
+        team: "test-team",
+        input: "Coordinate a task",
+        wait: true,
+      };
+
+      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
+
+      // Mock POST query creation
+      const postMock = jest.fn().mockResolvedValue({});
+
+      // Mock GET query status with minimal response (missing optional fields)
+      const getMock = jest.fn().mockResolvedValue({
+        status: {
+          phase: "done",
+          // responses array is missing, duration is missing
+        },
+      });
+
+      (mockFunctions.helpers!.request as jest.Mock)
+        .mockImplementationOnce(postMock)
+        .mockImplementation(getMock);
+
+      const executePromise = arkTeam.execute!.call(
+        mockFunctions as IExecuteFunctions,
+      );
+
+      await jest.advanceTimersByTimeAsync(5000);
+
+      const result = await executePromise;
+
+      // Should use fallback values for missing fields
+      expect(result[0][0].json).toMatchObject({
+        status: "done",
+        response: "", // fallback for missing content
+        duration: null, // fallback for missing duration
+      });
+    });
+
+    it("should handle workflow with undefined name", async () => {
+      const inputData = [createMockNodeExecutionData({})];
+      const parameters = {
+        team: "test-team",
+        input: "Test",
+        wait: false,
+      };
+
+      const mockFunctions = createMockExecuteFunctions(inputData, parameters);
+
+      // Override getWorkflow to return workflow with undefined name
+      mockFunctions.getWorkflow = jest.fn().mockReturnValue({
+        id: "workflow-123",
+        name: undefined, // undefined name to test ?? fallback
+      });
+
+      (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue({});
+
+      await arkTeam.execute!.call(
+        mockFunctions as IExecuteFunctions,
+      );
+
+      // Verify the metadata labels use fallback value
+      const callArgs = (mockFunctions.helpers!.request as jest.Mock).mock.calls[0][0];
+      expect(callArgs.body.metadata.labels.n8n_workflow_name).toBe("unknown");
+    });
   });
 });
