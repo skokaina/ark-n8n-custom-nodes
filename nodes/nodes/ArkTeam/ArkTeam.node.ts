@@ -52,15 +52,8 @@ export class ArkTeam implements INodeType {
         name: "wait",
         type: "boolean",
         default: true,
-        description: "Whether to wait for the query to complete",
-      },
-      {
-        displayName: "Timeout",
-        name: "timeout",
-        type: "string",
-        default: "300s",
-        description: 'Maximum time to wait for completion (e.g., "60s", "5m")',
-        placeholder: "300s",
+        description:
+          "Whether to wait for the query to complete (when false, streaming is enabled)",
       },
     ],
   };
@@ -97,22 +90,104 @@ export class ArkTeam implements INodeType {
       const team = this.getNodeParameter("team", i) as string;
       const input = this.getNodeParameter("input", i) as string;
       const wait = this.getNodeParameter("wait", i) as boolean;
-      const timeout = this.getNodeParameter("timeout", i, "300s") as string;
 
-      const body: any = {
-        input,
-        wait,
-        timeout,
+      const queryName = `n8n-${team}-${Date.now()}`;
+
+      // Get workflow and execution context
+      const workflow = this.getWorkflow();
+      const executionId = this.getExecutionId();
+
+      // Get session ID from chat session (if available from input data)
+      const itemData = items[i].json;
+      const chatSessionId =
+        itemData.sessionId ||
+        itemData.chatSessionId ||
+        itemData.session_id ||
+        itemData.chat_session_id ||
+        "unknown";
+
+      const queryBody: any = {
+        name: queryName,
+        type: "user",
+        input: input,
+        targets: [
+          {
+            type: "team",
+            name: team,
+          },
+        ],
+        metadata: {
+          annotations: {
+            "ark.mckinsey.com/run-id": executionId,
+            "ark.mckinsey.com/workflow-id": workflow.id,
+            "ark.mckinsey.com/session-id": chatSessionId,
+          },
+          labels: {
+            n8n_workflow_name: workflow.name ?? "unknown",
+            n8n_workflow_id: workflow.id ?? "unknown",
+            n8n_execution_id: executionId,
+            n8n_team_name: team,
+            n8n_session_id: chatSessionId,
+          },
+        },
       };
 
-      const response = await this.helpers.request({
+      await this.helpers.request({
         method: "POST",
-        url: `${baseUrl}/v1/teams/${team}/execute`,
-        body,
+        url: `${baseUrl}/v1/queries`,
+        body: queryBody,
         json: true,
       });
 
-      returnData.push({ json: response });
+      if (!wait) {
+        returnData.push({
+          json: {
+            queryName: queryName,
+            status: "pending",
+            message: "Query created, not waiting for completion",
+          },
+        });
+        continue;
+      }
+
+      let attempts = 0;
+      const maxAttempts = 60;
+      let response: any = null;
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        const queryStatus = await this.helpers.request({
+          method: "GET",
+          url: `${baseUrl}/v1/queries/${queryName}`,
+          json: true,
+        });
+
+        if (queryStatus.status?.phase === "done") {
+          response = queryStatus;
+          break;
+        } else if (queryStatus.status?.phase === "error") {
+          throw new Error(
+            `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+          );
+        }
+
+        attempts++;
+      }
+
+      if (!response) {
+        throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
+      }
+
+      const output = {
+        queryName: queryName,
+        status: response.status?.phase || "unknown",
+        input: input,
+        response: response.status?.responses?.[0]?.content || "",
+        duration: response.status?.duration || null,
+      };
+
+      returnData.push({ json: output });
     }
 
     return [returnData];
