@@ -124,8 +124,10 @@ jobs:
           platforms: linux/amd64
           push: false
           tags: ark-n8n:ci-test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
+          cache-to: |
+            type=gha,mode=max
 
   # Step 3: E2E Tests (only on main branch, only if build passes)
   e2e:
