@@ -1,0 +1,275 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  # Step 1: Quality checks (run in parallel)
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: nodes/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd nodes
+          npm ci
+
+      - name: Run ESLint
+        run: |
+          cd nodes
+          npm run lint
+
+      - name: TypeScript compilation check
+        run: |
+          cd nodes
+          npx tsc --noEmit
+
+  test:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: nodes/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd nodes
+          npm ci
+
+      - name: Run tests with coverage
+        run: |
+          cd nodes
+          npm run test:coverage
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: nodes/coverage/
+          retention-days: 7
+
+      - name: Check coverage threshold
+        if: success()
+        run: |
+          cd nodes
+          if [ ! -f coverage/coverage-summary.json ]; then
+            echo "Error: coverage-summary.json not found"
+            exit 1
+          fi
+          COVERAGE=$(node -pe "JSON.parse(require('fs').readFileSync('coverage/coverage-summary.json')).total.lines.pct")
+          echo "Coverage: ${COVERAGE}%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "Coverage below 80% threshold"
+            exit 1
+          fi
+
+  # Step 2: Build (only if lint + test pass)
+  build:
+    name: Build Nodes & Docker Image
+    runs-on: ubuntu-24.04
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: nodes/package-lock.json
+
+      - name: Build custom nodes
+        run: |
+          cd nodes
+          npm ci
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodes-dist
+          path: nodes/dist/
+          retention-days: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          tags: ark-n8n:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Step 3: E2E Tests (only on main branch, only if build passes)
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-24.04
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: |
+            nodes/package-lock.json
+            e2e/package-lock.json
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nodes-dist
+          path: nodes/dist/
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create k3d cluster
+        run: |
+          k3d cluster create ark-test \
+            --agents 2 \
+            --port "5678:5678@loadbalancer" \
+            --wait \
+            --timeout 5m
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install ARK CLI
+        run: |
+          npm install -g @agents-at-scale/ark@0.1.51 || npm install -g @agents-at-scale/ark
+          ark --version
+
+      - name: Install ARK to cluster
+        run: |
+          ark install --yes --wait-for-ready 5m --verbose
+          echo "✓ ARK installed successfully"
+          kubectl get pods -n ark-system
+          kubectl get svc -n ark-system
+
+      - name: Setup Free API and ARK test resources
+        env:
+          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
+        run: |
+          sleep 10
+          kubectl create secret generic huggingface-api-key \
+            --from-literal=api-key="$HF_API_TOKEN"
+          kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml
+          kubectl get agents,models,teams,memories,evaluators -n default
+          echo "✓ Free API and ARK resources ready (HuggingFace)"
+
+      - name: Build Docker image
+        run: |
+          docker build -t ark-n8n:test .
+
+      - name: Load image into k3d
+        run: |
+          k3d image import ark-n8n:test -c ark-test
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.14.0"
+
+      - name: Install ark-n8n via Helm
+        run: |
+          helm install ark-n8n ./chart \
+            -f chart/values-testing.yaml \
+            --set app.image.repository=ark-n8n \
+            --set app.image.tag=test \
+            --set app.image.pullPolicy=Never \
+            --set ark.apiUrl=http://ark-api.ark-system.svc.cluster.local \
+            --wait \
+            --timeout 5m
+
+      - name: Wait for n8n to be ready
+        run: |
+          kubectl wait --for=condition=available --timeout=300s deployment/ark-n8n
+          kubectl wait --for=condition=available --timeout=60s deployment/ark-n8n-nginx || true
+          kubectl get pods
+          kubectl logs deployment/ark-n8n --tail=50
+
+      - name: Setup n8n account
+        run: |
+          kubectl port-forward svc/ark-n8n 5678:5678 > /dev/null 2>&1 &
+          sleep 5
+          cd e2e && node scripts/setup-n8n-account.js
+          pkill -f "kubectl port-forward svc/ark-n8n" || true
+
+      - name: Port forward nginx proxy
+        run: |
+          kubectl port-forward svc/ark-n8n-proxy 5678:80 &
+          sleep 5
+          curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:5678
+
+      - name: Install Playwright
+        run: |
+          cd e2e
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: |
+          cd e2e
+          npx playwright test
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -A
+          echo "=== n8n logs ==="
+          kubectl logs deployment/ark-n8n --tail=100
+          echo "=== ARK Controller logs ==="
+          kubectl logs deployment/ark-controller -n ark-system --tail=100
+          echo "=== ARK Queries ==="
+          kubectl get queries -n default || echo "No queries found"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          k3d cluster delete ark-test

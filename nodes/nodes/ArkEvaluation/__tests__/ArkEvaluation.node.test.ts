@@ -334,14 +334,10 @@ describe("ArkEvaluation Node", () => {
             mockFunctions as ILoadOptionsFunctions,
           );
 
-        expect(result.results).toHaveLength(2);
+        expect(result.results).toHaveLength(1);
         expect(result.results[0]).toEqual({
           name: "agent: test-agent",
           value: "agent:test-agent",
-        });
-        expect(result.results[1]).toEqual({
-          name: "model: gpt-4",
-          value: "model:gpt-4",
         });
       });
 
@@ -359,7 +355,11 @@ describe("ArkEvaluation Node", () => {
             mockFunctions as ILoadOptionsFunctions,
           );
 
-        expect(result.results).toHaveLength(2);
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0]).toEqual({
+          name: "agent: test-agent",
+          value: "agent:test-agent",
+        });
       });
 
       it("should return empty results when no query is selected", async () => {

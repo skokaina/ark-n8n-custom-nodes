@@ -193,7 +193,7 @@ describe("ArkTeam Node", () => {
         .mockResolvedValueOnce({
           status: {
             phase: "done",
-            responses: [{ content: "Task coordinated successfully across agents" }],
+            response: { content: "Task coordinated successfully across agents" },
             duration: "5.0s",
           },
         });
@@ -237,7 +237,7 @@ describe("ArkTeam Node", () => {
       const getMock = jest.fn().mockResolvedValue({
         status: {
           phase: "error",
-          responses: [{ content: "Team execution failed" }],
+          response: { content: "Team execution failed" },
         },
       });
 

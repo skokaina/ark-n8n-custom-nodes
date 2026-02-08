@@ -360,7 +360,15 @@ export class ArkEvaluation implements INodeType {
             json: true,
           });
 
-          let targets = response.targets || [];
+          // Handle both new API (target object) and legacy API (targets array)
+          let targets: any[] = [];
+          if (response.target) {
+            // New API: single target object
+            targets = [response.target];
+          } else if (Array.isArray(response.targets)) {
+            // Legacy API: targets array
+            targets = response.targets;
+          }
 
           if (filter) {
             const filterLower = filter.toLowerCase();

@@ -1,0 +1,77 @@
+{
+  "name": "ARK E2E Webhook Test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ark-test",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [250, 300],
+      "webhookId": "ark-e2e-test"
+    },
+    {
+      "parameters": {
+        "agent": "={{ $json.body.agent }}",
+        "input": "={{ $json.body.query }}"
+      },
+      "id": "ark-agent",
+      "name": "ARK Agent",
+      "type": "CUSTOM.arkAgent",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"query\": \"{{ $json.input }}\",\n  \"response\": \"{{ $json.response }}\",\n  \"queryName\": \"{{ $json.queryName }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"duration\": \"{{ $json.duration }}\"\n}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "ARK Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["e2e", "test", "webhook"]
+}

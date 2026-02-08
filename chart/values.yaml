@@ -23,6 +23,13 @@ app:
     EXECUTIONS_DATA_SAVE_ON_SUCCESS: "all"
     EXECUTIONS_DATA_SAVE_ON_ERROR: "all"
 
+    # Authentication settings
+    # For production: keep N8N_BASIC_AUTH_ACTIVE=true and set credentials
+    # For testing/demos: set N8N_BASIC_AUTH_ACTIVE=false to disable login
+    N8N_BASIC_AUTH_ACTIVE: "true"
+    # N8N_BASIC_AUTH_USER: "admin"
+    # N8N_BASIC_AUTH_PASSWORD: "changeme"
+
 ark:
   apiUrl: http://ark-api.default.svc.cluster.local:80
   # Supported ARK API version range. Set to "" to skip the version check.

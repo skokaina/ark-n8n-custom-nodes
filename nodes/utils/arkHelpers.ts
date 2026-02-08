@@ -247,7 +247,11 @@ export async function postQuery(
  * Supports both legacy (responses array) and current (response string) formats.
  */
 export function extractResponseContent(queryResult: any): string {
-  // Current ARK API: single response field
+  // Current ARK API: single response object with content field
+  if (queryResult.status?.response?.content) {
+    return queryResult.status.response.content;
+  }
+  // Fallback: response as string (older format)
   if (typeof queryResult.status?.response === "string") {
     return queryResult.status.response;
   }

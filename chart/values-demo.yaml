@@ -1,0 +1,34 @@
+# Demo/evaluation values - pre-configured demo account
+# WARNING: Only use in secure, non-production environments!
+# Usage: helm install ark-n8n ./chart -f chart/values-demo.yaml
+
+app:
+  env:
+    # Public-friendly settings
+    N8N_HOST: ark-n8n-demo.127.0.0.1.nip.io
+    N8N_EDITOR_BASE_URL: http://ark-n8n-demo.127.0.0.1.nip.io
+    WEBHOOK_URL: http://ark-n8n-demo.127.0.0.1.nip.io
+
+    # Skip onboarding survey for demo environments
+    N8N_PERSONALIZATION_ENABLED: "false"
+
+    # CORS configuration for localhost and demo domains
+    N8N_DEFAULT_CORS: "TRUE"
+    N8N_CORS_ALLOW_ORIGIN: "http://localhost:5678,http://localhost:8080,http://127.0.0.1:5678,http://127.0.0.1:8080,http://ark-n8n-demo.127.0.0.1.nip.io"
+    WEBHOOK_CORS_ALLOWED_ORIGINS: "http://localhost:5678,http://localhost:8080,http://127.0.0.1:5678,http://127.0.0.1:8080,http://ark-n8n-demo.127.0.0.1.nip.io"
+
+httpRoute:
+  enabled: true
+  hostnames:
+    - ark-n8n-demo.127.0.0.1.nip.io
+  origin: "ark-n8n-demo.127.0.0.1.nip.io"
+  # Use nginx proxy for auto-login
+  backend:
+    service: ark-n8n-proxy
+    port: 80
+
+# Demo mode with auto-login proxy
+demo:
+  enabled: true
+  email: "admin@example.com"
+  password: "Admin123!@#"

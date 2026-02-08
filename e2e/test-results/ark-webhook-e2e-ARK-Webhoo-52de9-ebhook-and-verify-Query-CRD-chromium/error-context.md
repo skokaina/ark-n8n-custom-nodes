@@ -1,0 +1,158 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - main [ref=e4]:
+      - generic [ref=e6]:
+        - radiogroup [ref=e12]:
+          - radio "Editor" [ref=e13]:
+            - generic [ref=e14] [cursor=pointer]: Editor
+          - radio "Executions" [checked] [ref=e15]:
+            - generic [ref=e16] [cursor=pointer]: Executions
+          - radio "Evaluations" [ref=e17]:
+            - generic [ref=e18] [cursor=pointer]: Evaluations
+        - complementary [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e22]:
+              - menubar [ref=e23]:
+                - menuitem "Add new item" [ref=e24]:
+                  - button "Add new item" [ref=e26] [cursor=pointer]:
+                    - img [ref=e28]
+              - button "Open command palette" [ref=e31] [cursor=pointer]:
+                - img [ref=e33]
+              - button "Toggle sidebar" [ref=e38] [cursor=pointer]:
+                - img [ref=e40]
+            - generic [ref=e48]:
+              - menuitem "Overview" [ref=e51] [cursor=pointer]:
+                - img [ref=e53]
+              - menuitem "Chat" [ref=e59] [cursor=pointer]:
+                - img [ref=e61]
+            - generic [ref=e64]:
+              - menuitem "Inspiration" [ref=e67] [cursor=pointer]:
+                - img [ref=e69]
+              - menuitem "Insights" [ref=e73] [cursor=pointer]:
+                - img [ref=e75]
+              - menuitem "Help" [ref=e79] [cursor=pointer]:
+                - img [ref=e81]
+              - menuitem "Settings" [ref=e87] [cursor=pointer]:
+                - img [ref=e89]
+        - main [ref=e93]:
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - heading "Executions" [level=2] [ref=e98]
+              - generic [ref=e99]:
+                - generic [ref=e100] [cursor=pointer]:
+                  - checkbox "Auto refresh" [checked] [ref=e101]:
+                    - generic:
+                      - img
+                  - generic [ref=e102]: Auto refresh
+                - button [ref=e103] [cursor=pointer]:
+                  - img [ref=e105]
+              - link "Feb 8, 22:53:38 Succeeded in 5.066s" [ref=e109] [cursor=pointer]:
+                - /url: /workflow/IFj6nUKnqNWuvxxV/executions/12
+                - generic [ref=e110]:
+                  - generic [ref=e111]: Feb 8, 22:53:38
+                  - generic [ref=e112]:
+                    - generic [ref=e113]: Succeeded
+                    - generic [ref=e114]: in 5.066s
+              - generic [ref=e117] [cursor=pointer]:
+                - generic [ref=e118]: Which executions is this workflow saving?
+                - img [ref=e119]
+            - generic [ref=e122]:
+              - generic:
+                - generic [ref=e123]:
+                  - generic [ref=e125]: Feb 8, 22:53:38
+                  - generic [ref=e126]:
+                    - generic [ref=e127]: Succeeded
+                    - generic [ref=e128]: in 5.066s | ID#12
+                - generic [ref=e129]:
+                  - link "Copy to editor" [ref=e130] [cursor=pointer]:
+                    - /url: /workflow/IFj6nUKnqNWuvxxV/debug/12
+                    - button "Copy to editor" [ref=e131]:
+                      - generic [ref=e132]: Copy to editor
+                  - button "Delete this execution" [ref=e133] [cursor=pointer]:
+                    - img [ref=e135]
+              - iframe [active] [ref=e138]:
+                - generic [ref=f1e3]:
+                  - main [ref=f1e4]:
+                    - main [ref=f1e7]:
+                      - generic [ref=f1e12]:
+                        - generic [ref=f1e14]:
+                          - generic:
+                            - img
+                            - img:
+                              - group "Edge from webhook-trigger to ark-agent":
+                                - img
+                            - img:
+                              - group "Edge from ark-agent to respond-webhook":
+                                - img
+                            - generic:
+                              - generic:
+                                - generic: 1 item
+                              - generic:
+                                - generic: 1 item
+                            - generic:
+                              - group [ref=f1e15] [cursor=pointer]:
+                                - generic [ref=f1e16]:
+                                  - generic:
+                                    - generic:
+                                      - generic: POST
+                                  - button [ref=f1e18]:
+                                    - img [ref=f1e20]
+                                  - generic [ref=f1e22]:
+                                    - generic [ref=f1e25]:
+                                      - img
+                                    - generic:
+                                      - generic: Webhook
+                                    - img [ref=f1e27]
+                                  - generic:
+                                    - generic:
+                                      - generic:
+                                        - img
+                              - group [ref=f1e29] [cursor=pointer]:
+                                - generic [ref=f1e30]:
+                                  - button [ref=f1e32]:
+                                    - img [ref=f1e34]
+                                  - generic [ref=f1e36]:
+                                    - generic [ref=f1e39]:
+                                      - img
+                                    - generic:
+                                      - generic: ARK Agent
+                                    - img [ref=f1e41]
+                              - group [ref=f1e43] [cursor=pointer]:
+                                - generic [ref=f1e44]:
+                                  - generic:
+                                    - generic:
+                                      - generic: 1 item
+                                  - button [ref=f1e46]:
+                                    - img [ref=f1e48]
+                                  - generic [ref=f1e50]:
+                                    - generic [ref=f1e53]:
+                                      - img
+                                    - generic:
+                                      - generic: Respond to Webhook
+                                    - img [ref=f1e55]
+                        - img [ref=f1e57]
+                        - img [ref=f1e58]
+                        - generic [ref=f1e60]:
+                          - button [ref=f1e62] [cursor=pointer]:
+                            - img [ref=f1e64]
+                          - button [ref=f1e67] [cursor=pointer]:
+                            - img [ref=f1e69]
+                          - button [ref=f1e74] [cursor=pointer]:
+                            - img [ref=f1e76]
+                      - generic [ref=f1e89] [cursor=pointer]:
+                        - generic [ref=f1e90]: Logs
+                        - button "Open panel" [ref=f1e94]:
+                          - img [ref=f1e96]
+                  - complementary
+    - complementary
+  - generic [ref=e143]:
+    - generic [ref=e144]:
+      - generic [ref=e145]: Get inspired and learn with use cases
+      - button "Dismiss tooltip" [ref=e146] [cursor=pointer]:
+        - img [ref=e147]
+    - img [ref=e150]
+    - tooltip [ref=e152]: Get inspired and learn with use cases
+```

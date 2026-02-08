@@ -185,7 +185,7 @@ describe("ArkAgent Node", () => {
         .mockResolvedValueOnce({
           status: {
             phase: "done",
-            responses: [{ content: "I can help with various tasks" }],
+            response: { content: "I can help with various tasks" },
             duration: "1.5s",
           },
         });
@@ -229,7 +229,7 @@ describe("ArkAgent Node", () => {
       const getMock = jest.fn().mockResolvedValue({
         status: {
           phase: "error",
-          responses: [{ content: "Agent failed" }],
+          response: { content: "Agent failed" },
         },
       });
 

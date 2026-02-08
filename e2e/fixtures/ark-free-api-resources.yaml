@@ -1,0 +1,101 @@
+---
+# Groq Free Model - Default (No credit card required, very fast!)
+# Get your FREE API key: https://console.groq.com/keys
+# Set as environment variable: export GROQ_API_KEY="gsk_..."
+# Usage: kubectl create secret generic groq-api-key --from-literal=api-key="$GROQ_API_KEY"
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: default
+  namespace: default
+  labels:
+    provider: groq
+  annotations:
+    ark.mckinsey.com/pricing.currency: USD
+    ark.mckinsey.com/pricing.input-per-million: "0.05"
+    ark.mckinsey.com/pricing.output-per-million: "0.08"
+spec:
+  provider: openai  # Groq is OpenAI-compatible
+  type: completions
+  model:
+    value: llama-3.1-8b-instant  # Fast, small, free model (Groq hosted)
+  config:
+    openai:
+      baseUrl:
+        value: "https://api.groq.com/openai/v1"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: groq-api-key
+            key: api-key
+  pollInterval: 1m0s
+
+---
+# Groq Test Model (separate for E2E testing)
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: test-model
+  namespace: default
+  labels:
+    test: e2e
+    provider: groq
+  annotations:
+    model.ark.mckinsey.com/provider: groq
+    model.ark.mckinsey.com/speed: "very-fast"
+    pricing.ark.mckinsey.com/currency: USD
+    pricing.ark.mckinsey.com/input-cost: "0.000"
+    pricing.ark.mckinsey.com/output-cost: "0.000"
+spec:
+  provider: openai  # Groq is OpenAI-compatible
+  type: completions
+  model:
+    value: llama-3.1-8b-instant  # Fast, small, free model (Groq hosted)
+  config:
+    openai:
+      baseUrl:
+        value: "https://api.groq.com/openai/v1"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: groq-api-key
+            key: api-key
+  pollInterval: 1m0s
+
+---
+# Test Agent using free Groq model
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-agent
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  description: Helpful test agent for E2E testing with concise responses
+  modelRef:
+    name: test-model
+    namespace: default
+  prompt: |
+    You are a helpful test agent for E2E testing.
+    Respond concisely to test queries.
+    Keep responses under 50 words.
+
+---
+# Math Agent for specialized testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: math-agent
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  description: Math assistant that solves problems accurately
+  modelRef:
+    name: test-model
+    namespace: default
+  prompt: |
+    You are a math assistant.
+    Solve math problems accurately and show your work.
+    Keep responses concise.

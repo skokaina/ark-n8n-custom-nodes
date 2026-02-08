@@ -1,0 +1,119 @@
+---
+# Namespace for Ollama
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ollama
+---
+# Ollama Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: ollama
+  labels:
+    app: ollama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      containers:
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+          name: http
+        env:
+        - name: OLLAMA_HOST
+          value: "0.0.0.0:11434"
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: ollama-data
+          mountPath: /root/.ollama
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 11434
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 11434
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: ollama-data
+        emptyDir: {}
+---
+# Ollama Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: ollama
+  labels:
+    app: ollama
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 11434
+    protocol: TCP
+    name: http
+  selector:
+    app: ollama
+---
+# Job to pull model after Ollama is ready
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-pull-model
+  namespace: ollama
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+      - name: wait-for-ollama
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Ollama to be ready..."
+          until curl -f http://ollama.ollama.svc.cluster.local/api/tags; do
+            echo "Ollama not ready yet, waiting..."
+            sleep 5
+          done
+          echo "Ollama is ready!"
+      containers:
+      - name: pull-model
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Pulling qwen2.5:0.5b model (smallest model, ~397MB)..."
+          curl -X POST http://ollama.ollama.svc.cluster.local/api/pull \
+            -H "Content-Type: application/json" \
+            -d '{"name": "qwen2.5:0.5b"}' \
+            --max-time 600
+
+          echo "Verifying model is available..."
+          curl http://ollama.ollama.svc.cluster.local/api/tags
+
+          echo "Model pull complete!"

@@ -219,12 +219,10 @@ export class ArkAgentAdvanced implements INodeType {
       const querySpec: any = {
         type: "user",
         input: input,
-        targets: [
-          {
-            type: "agent",
-            name: agentName,
-          },
-        ],
+        target: {
+          type: "agent",
+          name: agentName,
+        },
         metadata: {
           annotations: {
             "ark.mckinsey.com/run-id": executionId,

@@ -210,16 +210,10 @@ export const queryDetailFixture = {
   name: 'sample-query',
   namespace: 'default',
   input: 'What is the capital of France?',
-  targets: [
-    { type: 'agent', name: 'test-agent' },
-    { type: 'model', name: 'gpt-4' },
-  ],
+  target: { type: 'agent', name: 'test-agent' },
   status: {
     phase: 'done',
-    responses: [
-      { target: { type: 'agent', name: 'test-agent' }, content: 'Paris' },
-      { target: { type: 'model', name: 'gpt-4' }, content: 'Paris' },
-    ],
+    response: { target: { type: 'agent', name: 'test-agent' }, content: 'Paris' },
   },
 };
 
