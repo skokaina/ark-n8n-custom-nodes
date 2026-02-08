@@ -11,20 +11,18 @@
       "id": "webhook-trigger",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
+      "typeVersion": 2.1,
       "position": [250, 300],
       "webhookId": "ark-e2e-test"
     },
     {
       "parameters": {
-        "agent": "={{$json.agent || 'test-agent'}}",
-        "input": "={{$json.query || 'What is 2+2?'}}",
-        "waitForCompletion": true,
-        "timeout": "30s"
+        "agent": "={{ $json.body.agent }}",
+        "input": "={{ $json.body.query }}"
       },
       "id": "ark-agent",
       "name": "ARK Agent",
-      "type": "n8n-nodes-ark.arkAgent",
+      "type": "CUSTOM.arkAgent",
       "typeVersion": 1,
       "position": [450, 300],
       "credentials": {
@@ -37,12 +35,12 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"success\": true, \"query\": $json.input, \"response\": $json.response, \"queryName\": $json.queryName, \"status\": $json.status, \"duration\": $json.duration } }}"
+        "options": {}
       },
       "id": "respond-webhook",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
+      "typeVersion": 1.5,
       "position": [650, 300]
     }
   ],
@@ -70,7 +68,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },

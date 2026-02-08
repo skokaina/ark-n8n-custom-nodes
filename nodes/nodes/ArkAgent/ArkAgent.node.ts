@@ -114,12 +114,10 @@ export class ArkAgent implements INodeType {
         name: queryName,
         type: "user",
         input: input,
-        targets: [
-          {
-            type: "agent",
-            name: agent,
-          },
-        ],
+        target: {
+          type: "agent",
+          name: agent,
+        },
         metadata: {
           annotations: {
             "ark.mckinsey.com/run-id": executionId,
