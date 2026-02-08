@@ -111,21 +111,25 @@ The Dockerfile extends the official n8n image:
 ARG N8N_VERSION=latest
 FROM docker.n8n.io/n8nio/n8n:${N8N_VERSION}
 
-# Copy pre-built nodes
-COPY nodes/package.json /tmp/n8n-nodes-ark/
-COPY nodes/dist /tmp/n8n-nodes-ark/dist/
-
-# Install globally so n8n discovers nodes
-RUN npm install -g .
+USER root
+RUN mkdir -p /opt/n8n-nodes-ark
+COPY nodes/package.json /opt/n8n-nodes-ark/
+COPY nodes/dist /opt/n8n-nodes-ark/dist/
 
 # Configure n8n to load custom nodes
-ENV N8N_CUSTOM_EXTENSIONS="/usr/local/lib/node_modules/n8n-nodes-ark"
+ENV N8N_CUSTOM_EXTENSIONS="/opt/n8n-nodes-ark"
+
+USER node
 ```
 
 **Key points**:
 - Nodes must be built BEFORE docker build
-- Global npm install allows n8n to discover nodes
+- Copy built nodes to a permanent location (`/opt/n8n-nodes-ark`)
 - `N8N_CUSTOM_EXTENSIONS` env var tells n8n where to find them
+- **CRITICAL**: Custom nodes loaded via `N8N_CUSTOM_EXTENSIONS` use the `CUSTOM.` prefix in workflow JSON
+  - ✅ Correct: `"type": "CUSTOM.arkAgent"`
+  - ❌ Wrong: `"type": "n8n-nodes-ark.arkAgent"`
+  - This applies to ALL custom nodes in workflows and fixtures
 
 ## Helm Chart Configuration
 

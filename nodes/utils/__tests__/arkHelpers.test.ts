@@ -351,7 +351,7 @@ describe("arkHelpers", () => {
       const querySpec = {
         type: "user",
         input: "Hello",
-        targets: [{ type: "agent", name: "test-agent" }],
+        target: { type: "agent", name: "test-agent" },
         wait: true,
         timeout: "30s",
       };
@@ -372,7 +372,7 @@ describe("arkHelpers", () => {
             name: "test-query",
             type: "user",
             input: "Hello",
-            targets: [{ type: "agent", name: "test-agent" }],
+            target: { type: "agent", name: "test-agent" },
             wait: true,
             timeout: "30s",
           },
@@ -450,7 +450,7 @@ describe("arkHelpers", () => {
           request: jest
             .fn()
             .mockResolvedValueOnce({ status: { phase: "running" } })
-            .mockResolvedValueOnce({ status: { phase: "done", responses: [{ content: "Response" }] } }),
+            .mockResolvedValueOnce({ status: { phase: "done", response: { content: "Response" }} }),
         },
       });
 
@@ -485,7 +485,7 @@ describe("arkHelpers", () => {
           request: jest.fn().mockResolvedValue({
             status: {
               phase: "error",
-              responses: [{ content: "Query failed" }],
+              response: { content: "Query failed" },
             },
           }),
         },

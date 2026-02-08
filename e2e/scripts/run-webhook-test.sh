@@ -52,14 +52,14 @@ echo ""
 
 # Port-forward n8n (if not already forwarded)
 echo -e "${YELLOW}Setting up port-forward to n8n...${NC}"
-if ! curl -s http://localhost:8080/healthz &> /dev/null; then
+if ! curl -s http://localhost:5678/healthz &> /dev/null; then
   echo "Starting port-forward in background..."
-  kubectl port-forward svc/ark-n8n-proxy 8080:80 &
+  kubectl port-forward svc/ark-n8n-proxy 5678:80 &
   PORT_FORWARD_PID=$!
   sleep 3
 
   # Verify port-forward is working
-  if ! curl -s http://localhost:8080/healthz &> /dev/null; then
+  if ! curl -s http://localhost:5678/healthz &> /dev/null; then
     echo -e "${RED}Error: Port-forward failed${NC}"
     kill $PORT_FORWARD_PID 2>/dev/null || true
     exit 1
@@ -80,8 +80,8 @@ echo ""
 cd e2e
 
 # Set environment variables
-export N8N_URL=http://localhost:8080
-export ARK_API_URL=http://ark-api.ark-system.svc.cluster.local
+export N8N_URL=http://localhost:5678
+export ARK_API_URL=http://ark-api.default.svc.cluster.local
 export CLEANUP_QUERIES=${CLEANUP_QUERIES:-false}
 
 # Run the test

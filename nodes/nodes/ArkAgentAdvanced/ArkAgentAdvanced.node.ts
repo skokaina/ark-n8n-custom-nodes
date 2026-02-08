@@ -290,7 +290,7 @@ export class ArkAgentAdvanced implements INodeType {
           queryName: queryName,
           status: response.status?.phase || "unknown",
           input: input,
-          response: response.status?.responses?.[0]?.content || "",
+          response: response.status?.response?.content || "",
           duration: response.status?.duration || null,
           sessionId: sessionId,
           memoryRef: memoryRef?.name || null,

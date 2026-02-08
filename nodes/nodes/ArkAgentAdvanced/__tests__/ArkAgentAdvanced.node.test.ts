@@ -154,7 +154,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
         status: {
           phase: "done",
-          responses: [{ content: "Hello! How can I help?" }],
+          response: { content: "Hello! How can I help?" },
           duration: "1.5s",
         },
       });
@@ -244,7 +244,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
         status: {
           phase: "done",
-          responses: [{ content: "Response" }],
+          response: { content: "Response" },
           duration: "2s",
         },
       });
@@ -289,7 +289,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.extractToolsConfig as jest.Mock).mockResolvedValue(null);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
-        status: { phase: "done", responses: [{ content: "Response" }] },
+        status: { phase: "done", response: { content: "Response" }},
       });
 
       await node.execute.call(mockContext);
@@ -325,7 +325,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(mockMemoryRef);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
-        status: { phase: "done", responses: [{ content: "Response" }] },
+        status: { phase: "done", response: { content: "Response" }},
       });
 
       await node.execute.call(mockContext);
@@ -361,7 +361,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
-        status: { phase: "done", responses: [{ content: "Response" }] },
+        status: { phase: "done", response: { content: "Response" }},
       });
 
       await node.execute.call(mockContext);
@@ -458,7 +458,7 @@ describe("ArkAgentAdvanced Node", () => {
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
-        status: { phase: "done", responses: [{ content: "Response" }] },
+        status: { phase: "done", response: { content: "Response" }},
       });
 
       const result = await node.execute.call(mockContext);

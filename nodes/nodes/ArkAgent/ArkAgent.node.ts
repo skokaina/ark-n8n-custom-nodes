@@ -170,7 +170,7 @@ export class ArkAgent implements INodeType {
           break;
         } else if (queryStatus.status?.phase === "error") {
           throw new Error(
-            `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+            `Query failed: ${queryStatus.status?.response?.content || "Unknown error"}`,
           );
         }
 
@@ -185,7 +185,7 @@ export class ArkAgent implements INodeType {
         queryName: queryName,
         status: response.status?.phase || "unknown",
         input: input,
-        response: response.status?.responses?.[0]?.content || "",
+        response: response.status?.response?.content || "",
         duration: response.status?.duration || null,
       };
 

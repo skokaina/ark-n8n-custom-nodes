@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const N8N_URL = process.env.N8N_URL || 'http://localhost:8080';
-const ARK_API_URL = process.env.ARK_API_URL || 'http://ark-api.ark-system.svc.cluster.local';
+const ARK_API_URL = process.env.ARK_API_URL || 'http://ark-api.default.svc.cluster.local';
 
 // Helper to execute kubectl commands
 function kubectl(command: string): string {
@@ -69,99 +69,244 @@ test.describe('ARK Webhook E2E Test', () => {
   test('should import workflow, execute via webhook, and verify Query CRD', async ({ page, request }) => {
     console.log('📝 Test: Webhook → ARK Agent → Response → Query CRD Verification\n');
 
-    // Step 1: Navigate to n8n
+    // Step 1: Navigate to n8n and login if needed
     console.log('1️⃣ Navigating to n8n...');
     await page.goto(N8N_URL);
     await page.waitForLoadState('networkidle');
-    console.log('✓ n8n loaded\n');
 
-    // Step 2: Import workflow
-    console.log('2️⃣ Importing webhook test workflow...');
-    await page.goto(`${N8N_URL}/workflow/new`);
-    await page.waitForLoadState('networkidle');
+    // Wait for either workflow page or login page (auto-login might be slow)
+    await page.waitForTimeout(2000);
 
-    // Open import menu
-    await page.getByRole('button', { name: /workflow/i }).click();
-    await page.getByRole('menuitem', { name: /import from file/i }).click();
-
-    // Upload workflow file
-    const workflowPath = path.join(__dirname, '../fixtures/webhook-test-workflow.json');
-    const workflowContent = fs.readFileSync(workflowPath, 'utf-8');
-
-    // Paste workflow JSON (if file upload doesn't work)
-    const workflowData = JSON.parse(workflowContent);
-    await page.evaluate((data) => {
-      // @ts-ignore
-      window.__n8nImportWorkflow = data;
-    }, workflowData);
-
-    // Alternative: Try file input if available
-    const fileInput = page.locator('input[type="file"]');
-    if (await fileInput.count() > 0) {
-      await fileInput.setInputFiles(workflowPath);
+    // Check if login form is present
+    const loginForm = await page.locator('input[name="email"]').count();
+    if (loginForm > 0) {
+      console.log('🔐 Logging in...');
+      await page.fill('input[name="email"]', 'admin@example.com');
+      await page.fill('input[name="password"]', 'Admin123!@#');
+      await page.click('button:has-text("Sign in")');
+      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
+      console.log('✓ Logged in\n');
+    } else {
+      console.log('✓ Already logged in\n');
     }
 
-    console.log('✓ Workflow imported\n');
+    console.log('✓ n8n loaded\n');
 
-    // Step 3: Configure ARK credentials
-    console.log('3️⃣ Configuring ARK credentials...');
+    // Step 2: Create n8n API key for REST API access
+    console.log('2️⃣ Creating n8n API key...');
+    await page.goto(`${N8N_URL}/settings/api`);
+    await page.waitForLoadState('networkidle');
 
-    // Click on ARK Agent node
-    await page.getByText('ARK Agent').click();
+    // Delete any existing API keys for a clean state
+    const apiKeyRows = page.locator('[data-test-id^="api-key-row"]');
+    const apiKeyCount = await apiKeyRows.count();
+    if (apiKeyCount > 0) {
+      console.log(`   Deleting ${apiKeyCount} existing API key(s)...`);
+      for (let i = 0; i < apiKeyCount; i++) {
+        const deleteButton = apiKeyRows.nth(0).locator('button[aria-label="delete"]').or(apiKeyRows.nth(0).locator('button:has-text("Delete")'));
+        if (await deleteButton.isVisible()) {
+          await deleteButton.click();
+          // Confirm deletion if modal appears
+          const confirmButton = page.getByRole('button', { name: /delete|confirm/i });
+          if (await confirmButton.isVisible({ timeout: 2000 })) {
+            await confirmButton.click();
+          }
+          await page.waitForTimeout(500);
+        }
+      }
+      console.log(`   ✓ Deleted existing API keys`);
+    }
+
+    // Create new API key
+    const createKeyButton = page.getByRole('button', { name: /create an api key/i });
+    await createKeyButton.click();
     await page.waitForTimeout(1000);
 
-    // Click on credentials dropdown (if not configured)
-    const credentialSelect = page.locator('[data-test-id="parameter-input-arkApi"]').first();
-    if (await credentialSelect.count() > 0) {
-      await credentialSelect.click();
+    // Fill in the Label field with unique timestamp
+    const labelInput = page.locator('input[placeholder*="Internal Project"]').or(page.locator('label:has-text("Label") + input'));
+    const uniqueLabel = `E2E Test ${Date.now()}`;
+    await labelInput.fill(uniqueLabel);
+    await page.waitForTimeout(500);
 
-      // Check if credentials exist or create new
-      const createNew = page.getByRole('button', { name: /create new credential/i });
-      if (await createNew.isVisible()) {
-        await createNew.click();
+    // Click Save button in the modal to generate the API key
+    const saveButton = page.getByRole('button', { name: /save/i });
+    await saveButton.click();
 
-        // Fill in ARK API credentials
-        await page.fill('input[name="baseUrl"]', ARK_API_URL);
-        await page.fill('input[name="namespace"]', 'default');
+    // Wait for "API Key Created" success modal to appear (use role="dialog" to avoid notification)
+    const successModal = page.locator('[role="dialog"]').filter({ hasText: 'API Key Created' });
+    await successModal.waitFor({ timeout: 10000 });
 
-        // Save credentials
-        await page.getByRole('button', { name: /save/i }).click();
-        await page.waitForTimeout(1000);
+    // Extract the API key - it's displayed as text starting with "eyJh" (JWT format)
+    const apiKeyText = await successModal.locator('text=/eyJh[a-zA-Z0-9_.-]+/').textContent();
+    const apiKey = apiKeyText?.trim() || '';
+
+    if (!apiKey || apiKey.length < 10) {
+      throw new Error(`Failed to extract API key. Got: "${apiKey}"`);
+    }
+
+    console.log(`✓ API key created: ${apiKey.substring(0, 20)}...`);
+
+    // Store for API requests
+    process.env.N8N_API_KEY = apiKey;
+
+    // Close the success modal
+    await page.getByRole('button', { name: /done/i }).click();
+    console.log('');
+
+    // Step 2.5: Clean up existing workflows and credentials
+    console.log('2.5️⃣ Cleaning up existing workflows and credentials...');
+
+    // Delete all workflows
+    const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
+
+    if (listResponse.ok()) {
+      const workflows = await listResponse.json();
+      console.log(`   Found ${workflows.data?.length || 0} existing workflow(s)`);
+
+      if (workflows.data && workflows.data.length > 0) {
+        for (const workflow of workflows.data) {
+          try {
+            await page.request.delete(`${N8N_URL}/api/v1/workflows/${workflow.id}`, {
+              headers: {
+                'X-N8N-API-KEY': process.env.N8N_API_KEY!
+              }
+            });
+            console.log(`   ✓ Deleted workflow "${workflow.name}" (${workflow.id})`);
+          } catch (error) {
+            console.log(`   ⚠ Could not delete workflow ${workflow.id}`);
+          }
+        }
       }
     }
 
-    console.log('✓ Credentials configured\n');
+    // Delete all credentials
+    const credListResponse = await page.request.get(`${N8N_URL}/api/v1/credentials`, {
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
 
-    // Step 4: Save workflow
-    console.log('4️⃣ Saving workflow...');
-    await page.getByRole('button', { name: /save/i }).first().click();
+    if (credListResponse.ok()) {
+      const credentials = await credListResponse.json();
+      console.log(`   Found ${credentials.data?.length || 0} existing credential(s)`);
+
+      if (credentials.data && credentials.data.length > 0) {
+        for (const cred of credentials.data) {
+          try {
+            await page.request.delete(`${N8N_URL}/api/v1/credentials/${cred.id}`, {
+              headers: {
+                'X-N8N-API-KEY': process.env.N8N_API_KEY!
+              }
+            });
+            console.log(`   ✓ Deleted credential "${cred.name}" (${cred.id})`);
+          } catch (error) {
+            console.log(`   ⚠ Could not delete credential ${cred.id}`);
+          }
+        }
+      }
+    }
+    console.log('');
+
+    // Step 2.6: Create ARK API credential
+    console.log('2.6️⃣ Creating ARK API credential...');
+    const credentialData = {
+      name: 'ARK API',
+      type: 'arkApi',
+      data: {
+        baseUrl: ARK_API_URL,
+        namespace: 'default',
+        apiKey: '' // No API key needed for internal cluster access
+      }
+    };
+
+    console.log(`   Using ARK_API_URL: ${ARK_API_URL}`);
+    console.log(`   Credential data: ${JSON.stringify(credentialData, null, 2)}`);
+
+    const credentialResponse = await page.request.post(`${N8N_URL}/api/v1/credentials`, {
+      data: credentialData,
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
+
+    if (!credentialResponse.ok()) {
+      throw new Error(`Failed to create credential: ${credentialResponse.status()} ${await credentialResponse.text()}`);
+    }
+
+    const credential = await credentialResponse.json();
+    const credentialId = credential.id;
+    console.log(`✓ ARK API credential created (ID: ${credentialId})`);
+    console.log(`   Credential response: ${JSON.stringify(credential, null, 2)}\\n`);
+
+    // Step 3: Import workflow via API (more reliable than UI automation)
+    console.log('3️⃣ Importing webhook test workflow via API...');
+    const workflowPath = path.join(__dirname, '../fixtures/webhook-test-workflow.json');
+    const workflowContent = fs.readFileSync(workflowPath, 'utf-8');
+    const workflowData = JSON.parse(workflowContent);
+
+    // Update credential ID to the one we just created
+    if (workflowData.nodes) {
+      workflowData.nodes.forEach((node: any) => {
+        if (node.credentials?.arkApi) {
+          node.credentials.arkApi.id = credentialId;
+        }
+      });
+    }
+
+    // Remove read-only fields before import
+    delete workflowData.active; // active is read-only, must be set after import
+    delete workflowData.id;
+    delete workflowData.createdAt;
+    delete workflowData.updatedAt;
+    delete workflowData.tags;
+
+    // Import workflow via REST API using API key
+    const importResponse = await page.request.post(`${N8N_URL}/api/v1/workflows`, {
+      data: workflowData,
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
+
+    if (!importResponse.ok()) {
+      throw new Error(`Failed to import workflow: ${importResponse.status()} ${await importResponse.text()}`);
+    }
+
+    const workflow = await importResponse.json();
+    workflowId = workflow.id;
+    console.log(`✓ Workflow imported (ID: ${workflowId})\n`);
+
+    // Step 4: Activate workflow by publishing it
+    console.log('4️⃣ Activating workflow (publishing)...');
+
+    // Navigate to the workflow
+    await page.goto(`${N8N_URL}/workflow/${workflowId}`);
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
 
-    // Get workflow ID from URL
-    const url = page.url();
-    const match = url.match(/workflow\/([a-zA-Z0-9]+)/);
-    if (!match) {
-      throw new Error('Could not extract workflow ID from URL');
-    }
-    workflowId = match[1];
-    console.log(`✓ Workflow saved with ID: ${workflowId}\n`);
+    // Click Publish button to open modal
+    const publishButton = page.getByRole('button', { name: /publish/i }).first();
+    await publishButton.click();
+    await page.waitForTimeout(500);
 
-    // Step 5: Activate workflow
-    console.log('5️⃣ Activating workflow...');
-    const activateButton = page.locator('[data-test-id="workflow-activate-switch"]');
-    if (await activateButton.count() > 0) {
-      await activateButton.click();
-      await page.waitForTimeout(2000);
-    }
-    console.log('✓ Workflow activated\n');
+    // Wait for publish modal and click Publish button inside it
+    const modalPublishButton = page.getByRole('button', { name: /publish/i }).last();
+    await modalPublishButton.click();
+    await page.waitForTimeout(2000); // Wait for publish to complete
 
-    // Step 6: Get webhook URL
-    console.log('6️⃣ Getting webhook URL...');
+    console.log('✓ Workflow published and activated\n');
+
+    // Step 5: Get production webhook URL
+    console.log('5️⃣ Getting webhook URL...');
     webhookUrl = `${N8N_URL}/webhook/ark-test`;
     console.log(`✓ Webhook URL: ${webhookUrl}\n`);
 
-    // Step 7: Execute webhook request
-    console.log('7️⃣ Executing webhook request...');
+    // Step 6: Execute webhook request
+    console.log('6️⃣ Executing webhook request...');
     const testQuery = 'What is 2 plus 2?';
     const webhookPayload = {
       agent: 'test-agent',
@@ -176,7 +321,12 @@ test.describe('ARK Webhook E2E Test', () => {
       timeout: 60000 // 60 second timeout for ARK query
     });
 
-    expect(response.ok()).toBeTruthy();
+    if (!response.ok()) {
+      const errorText = await response.text();
+      console.log(`   ❌ Webhook failed: ${response.status()} ${errorText}`);
+      throw new Error(`Webhook request failed: ${response.status()} ${errorText}`);
+    }
+
     const responseData = await response.json();
 
     console.log('✓ Webhook executed successfully');
@@ -193,8 +343,8 @@ test.describe('ARK Webhook E2E Test', () => {
     expect(responseData).toHaveProperty('status');
     expect(responseData).toHaveProperty('duration');
 
-    // Step 8: Verify Query CRD in Kubernetes
-    console.log('8️⃣ Verifying Query CRD in Kubernetes...');
+    // Step 7: Verify Query CRD in Kubernetes
+    console.log('7️⃣ Verifying Query CRD in Kubernetes...');
 
     // Extract query name from response
     const queryName = responseData.queryName;
@@ -346,8 +496,22 @@ test.describe('ARK Webhook E2E Test', () => {
     }
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async ({ request }) => {
     console.log('\n🧹 Cleanup...\n');
+
+    // Clean up workflow if it was created
+    if (workflowId && process.env.N8N_API_KEY) {
+      try {
+        await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`, {
+          headers: {
+            'X-N8N-API-KEY': process.env.N8N_API_KEY
+          }
+        });
+        console.log('✓ Workflow deleted');
+      } catch (error) {
+        console.log('Note: Could not delete workflow');
+      }
+    }
 
     // Optionally clean up test Query CRDs
     if (process.env.CLEANUP_QUERIES === 'true') {

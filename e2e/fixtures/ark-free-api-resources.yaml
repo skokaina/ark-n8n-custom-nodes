@@ -1,8 +1,37 @@
 ---
-# Groq Free Model (No credit card required, very fast!)
+# Groq Free Model - Default (No credit card required, very fast!)
 # Get your FREE API key: https://console.groq.com/keys
 # Set as environment variable: export GROQ_API_KEY="gsk_..."
 # Usage: kubectl create secret generic groq-api-key --from-literal=api-key="$GROQ_API_KEY"
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: default
+  namespace: default
+  labels:
+    provider: groq
+  annotations:
+    ark.mckinsey.com/pricing.currency: USD
+    ark.mckinsey.com/pricing.input-per-million: "0.05"
+    ark.mckinsey.com/pricing.output-per-million: "0.08"
+spec:
+  provider: openai  # Groq is OpenAI-compatible
+  type: completions
+  model:
+    value: llama-3.1-8b-instant  # Fast, small, free model (Groq hosted)
+  config:
+    openai:
+      baseUrl:
+        value: "https://api.groq.com/openai/v1"
+      apiKey:
+        valueFrom:
+          secretKeyRef:
+            name: groq-api-key
+            key: api-key
+  pollInterval: 1m0s
+
+---
+# Groq Test Model (separate for E2E testing)
 apiVersion: ark.mckinsey.com/v1alpha1
 kind: Model
 metadata:
@@ -21,7 +50,7 @@ spec:
   provider: openai  # Groq is OpenAI-compatible
   type: completions
   model:
-    value: llama-3.2-1b-preview  # Fast, small, free model (Groq hosted)
+    value: llama-3.1-8b-instant  # Fast, small, free model (Groq hosted)
   config:
     openai:
       baseUrl:

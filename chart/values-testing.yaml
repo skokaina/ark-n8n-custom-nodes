@@ -25,6 +25,8 @@ httpRoute:
 
 # Smaller resource requests for testing
 ark:
+  # Correct ARK API URL for default namespace
+  apiUrl: http://ark-api.default.svc.cluster.local
   resources:
     limits:
       cpu: 200m
