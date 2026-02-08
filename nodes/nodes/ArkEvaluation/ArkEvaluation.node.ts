@@ -300,7 +300,7 @@ export class ArkEvaluation implements INodeType {
             name: evaluator.name,
             value: evaluator.name,
           }));
-        } catch (error) {
+        } catch (_error) {
           return [];
         }
       },
@@ -333,7 +333,7 @@ export class ArkEvaluation implements INodeType {
               url: `${baseUrl}/v1/queries/${query.name}`,
             })),
           };
-        } catch (error) {
+        } catch (_error) {
           return { results: [] };
         }
       },
@@ -376,7 +376,7 @@ export class ArkEvaluation implements INodeType {
               value: `${target.type}:${target.name}`,
             })),
           };
-        } catch (error) {
+        } catch (_error) {
           return { results: [] };
         }
       },
@@ -522,7 +522,6 @@ export class ArkEvaluation implements INodeType {
         const startTime = Date.now();
         const maxWaitTime = timeout * 1000;
 
-        // eslint-disable-next-line no-constant-condition
         while (true) {
           const statusResponse = await this.helpers.request({
             method: "GET",

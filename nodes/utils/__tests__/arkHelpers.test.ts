@@ -1,4 +1,5 @@
 import {
+  getAuthHeader,
   getSessionId,
   patchAgent,
   postQuery,
@@ -12,6 +13,44 @@ import { createMockExecuteFunctions } from "../../test-helpers/mocks";
 describe("arkHelpers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe("getAuthHeader", () => {
+    it("should return undefined for none scheme", () => {
+      expect(getAuthHeader({ authScheme: "none" })).toBeUndefined();
+    });
+
+    it("should return undefined when authScheme is not set", () => {
+      expect(getAuthHeader({})).toBeUndefined();
+    });
+
+    it("should return Basic header for basic scheme", () => {
+      const header = getAuthHeader({
+        authScheme: "basic",
+        apiKey: "pk-ark-test:sk-ark-test",
+      });
+
+      expect(header).toBe(
+        `Basic ${Buffer.from("pk-ark-test:sk-ark-test").toString("base64")}`,
+      );
+    });
+
+    it("should return undefined for basic scheme without apiKey", () => {
+      expect(getAuthHeader({ authScheme: "basic" })).toBeUndefined();
+    });
+
+    it("should return Bearer header for bearer scheme", () => {
+      const header = getAuthHeader({
+        authScheme: "bearer",
+        bearerToken: "eyJhbGciOiJSUzI1NiIs.test.token",
+      });
+
+      expect(header).toBe("Bearer eyJhbGciOiJSUzI1NiIs.test.token");
+    });
+
+    it("should return undefined for bearer scheme without bearerToken", () => {
+      expect(getAuthHeader({ authScheme: "bearer" })).toBeUndefined();
+    });
   });
 
   describe("getSessionId", () => {
@@ -244,6 +283,7 @@ describe("arkHelpers", () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
+            authScheme: "basic",
             apiKey: "pk-ark-test:sk-ark-test",
           },
         },
@@ -272,10 +312,11 @@ describe("arkHelpers", () => {
       );
     });
 
-    it("should include API key in authorization header", async () => {
+    it("should include Basic auth header when authScheme is basic", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
+            authScheme: "basic",
             apiKey: "pk-ark-test:sk-ark-test",
           },
         },
@@ -293,6 +334,51 @@ describe("arkHelpers", () => {
 
       expect(requestOptions.headers.Authorization).toBeDefined();
       expect(requestOptions.headers.Authorization).toMatch(/^Basic /);
+    });
+
+    it("should include Bearer auth header when authScheme is bearer", async () => {
+      const mockContext = createMockExecuteFunctions({
+        credentials: {
+          arkApi: {
+            authScheme: "bearer",
+            bearerToken: "my-jwt-token",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({}),
+        },
+      });
+
+      await patchAgent(mockContext, "http://ark-api:8000", "default", "test-agent", {
+        modelRef: { name: "gpt-4", namespace: "default" },
+      });
+
+      const requestCall = mockContext.helpers.request as jest.Mock;
+      const requestOptions = requestCall.mock.calls[0][0];
+
+      expect(requestOptions.headers.Authorization).toBe("Bearer my-jwt-token");
+    });
+
+    it("should not include auth header when authScheme is none", async () => {
+      const mockContext = createMockExecuteFunctions({
+        credentials: {
+          arkApi: {
+            authScheme: "none",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({}),
+        },
+      });
+
+      await patchAgent(mockContext, "http://ark-api:8000", "default", "test-agent", {
+        modelRef: { name: "gpt-4", namespace: "default" },
+      });
+
+      const requestCall = mockContext.helpers.request as jest.Mock;
+      const requestOptions = requestCall.mock.calls[0][0];
+
+      expect(requestOptions.headers.Authorization).toBeUndefined();
     });
 
     it("should not patch if no config to update", async () => {
@@ -381,10 +467,11 @@ describe("arkHelpers", () => {
       );
     });
 
-    it("should include API key in authorization header", async () => {
+    it("should include Basic auth header when authScheme is basic", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
+            authScheme: "basic",
             apiKey: "pk-ark-test:sk-ark-test",
           },
         },
@@ -404,6 +491,31 @@ describe("arkHelpers", () => {
 
       expect(requestOptions.headers.Authorization).toBeDefined();
       expect(requestOptions.headers.Authorization).toMatch(/^Basic /);
+    });
+
+    it("should include Bearer auth header when authScheme is bearer", async () => {
+      const mockContext = createMockExecuteFunctions({
+        credentials: {
+          arkApi: {
+            authScheme: "bearer",
+            bearerToken: "my-jwt-token",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({}),
+        },
+      });
+
+      await postQuery(mockContext, "http://ark-api:8000", "default", "test-query", {
+        type: "user",
+        input: "Hello",
+        targets: [],
+      });
+
+      const requestCall = mockContext.helpers.request as jest.Mock;
+      const requestOptions = requestCall.mock.calls[0][0];
+
+      expect(requestOptions.headers.Authorization).toBe("Bearer my-jwt-token");
     });
 
     it("should include sessionId and memory in query", async () => {
@@ -541,10 +653,11 @@ describe("arkHelpers", () => {
       jest.useRealTimers();
     });
 
-    it("should include API key in authorization header", async () => {
+    it("should include Basic auth header when authScheme is basic", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
+            authScheme: "basic",
             apiKey: "pk-ark-test:sk-ark-test",
           },
         },
@@ -571,7 +684,78 @@ describe("arkHelpers", () => {
       const requestCall = mockContext.helpers.request as jest.Mock;
       const requestOptions = requestCall.mock.calls[0][0];
 
-      expect(requestOptions.headers.Authorization).toBeDefined();
+      expect(requestOptions.headers.Authorization).toMatch(/^Basic /);
+
+      jest.useRealTimers();
+    });
+
+    it("should include Bearer auth header when authScheme is bearer", async () => {
+      const mockContext = createMockExecuteFunctions({
+        credentials: {
+          arkApi: {
+            authScheme: "bearer",
+            bearerToken: "my-jwt-token",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            status: { phase: "done" },
+          }),
+        },
+      });
+
+      jest.useFakeTimers();
+
+      const pollPromise = pollQueryStatus(
+        mockContext,
+        "http://ark-api:8000",
+        "default",
+        "test-query",
+        10
+      );
+
+      await jest.advanceTimersByTimeAsync(5000);
+      await pollPromise;
+
+      const requestCall = mockContext.helpers.request as jest.Mock;
+      const requestOptions = requestCall.mock.calls[0][0];
+
+      expect(requestOptions.headers.Authorization).toBe("Bearer my-jwt-token");
+
+      jest.useRealTimers();
+    });
+
+    it("should not include auth header when authScheme is none", async () => {
+      const mockContext = createMockExecuteFunctions({
+        credentials: {
+          arkApi: {
+            authScheme: "none",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            status: { phase: "done" },
+          }),
+        },
+      });
+
+      jest.useFakeTimers();
+
+      const pollPromise = pollQueryStatus(
+        mockContext,
+        "http://ark-api:8000",
+        "default",
+        "test-query",
+        10
+      );
+
+      await jest.advanceTimersByTimeAsync(5000);
+      await pollPromise;
+
+      const requestCall = mockContext.helpers.request as jest.Mock;
+      const requestOptions = requestCall.mock.calls[0][0];
+
+      expect(requestOptions.headers.Authorization).toBeUndefined();
 
       jest.useRealTimers();
     });

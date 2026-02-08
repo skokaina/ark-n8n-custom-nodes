@@ -25,6 +25,32 @@ export class ArkApi implements ICredentialType {
       placeholder: "default",
     },
     {
+      displayName: "Authentication Scheme",
+      name: "authScheme",
+      type: "options",
+      options: [
+        {
+          name: "None",
+          value: "none",
+          description: "No authentication (in-cluster access)",
+        },
+        {
+          name: "Basic (API Key)",
+          value: "basic",
+          description:
+            "Basic authentication using ARK API key (pk-ark-xxx:sk-ark-xxx)",
+        },
+        {
+          name: "Bearer Token",
+          value: "bearer",
+          description:
+            "Bearer token authentication (JWT or service account token)",
+        },
+      ],
+      default: "none",
+      description: "The authentication scheme to use for ARK API requests",
+    },
+    {
       displayName: "API Key",
       name: "apiKey",
       type: "string",
@@ -32,22 +58,32 @@ export class ArkApi implements ICredentialType {
         password: true,
       },
       default: "",
-      required: false,
-      description:
-        "Optional API key for authentication (format: pk-ark-xxx:sk-ark-xxx)",
+      required: true,
+      description: "ARK API key (format: pk-ark-xxx:sk-ark-xxx)",
       placeholder: "pk-ark-xxx:sk-ark-xxx",
+      displayOptions: {
+        show: {
+          authScheme: ["basic"],
+        },
+      },
     },
     {
-      displayName: "API Token",
-      name: "token",
+      displayName: "Bearer Token",
+      name: "bearerToken",
       type: "string",
       typeOptions: {
         password: true,
       },
       default: "",
-      required: false,
+      required: true,
       description:
-        "Optional API token for authentication (legacy, use API Key instead)",
+        "Bearer token for authentication (JWT, service account token, or other token)",
+      placeholder: "eyJhbGciOiJSUzI1NiIs...",
+      displayOptions: {
+        show: {
+          authScheme: ["bearer"],
+        },
+      },
     },
   ];
 }

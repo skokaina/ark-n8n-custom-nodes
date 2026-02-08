@@ -1,6 +1,28 @@
 import { IExecuteFunctions } from "n8n-workflow";
 
 /**
+ * Build the Authorization header based on the configured auth scheme.
+ * Returns undefined if authScheme is "none" or not set.
+ */
+export function getAuthHeader(credentials: {
+  authScheme?: string;
+  apiKey?: string;
+  bearerToken?: string;
+}): string | undefined {
+  const scheme = credentials.authScheme || "none";
+
+  if (scheme === "basic" && credentials.apiKey) {
+    return `Basic ${Buffer.from(credentials.apiKey).toString("base64")}`;
+  }
+
+  if (scheme === "bearer" && credentials.bearerToken) {
+    return `Bearer ${credentials.bearerToken}`;
+  }
+
+  return undefined;
+}
+
+/**
  * Get or generate session ID for conversation continuity
  */
 export function getSessionId(
@@ -149,7 +171,6 @@ export async function patchAgent(
   },
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   const patchBody: any = { spec: {} };
 
@@ -176,10 +197,8 @@ export async function patchAgent(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    // Assuming API key format: "pk-ark-xxx:sk-ark-xxx"
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
@@ -197,7 +216,6 @@ export async function postQuery(
   querySpec: any,
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   // ARK API uses flat structure for query body, not metadata + spec
   const queryBody: any = {
@@ -215,9 +233,8 @@ export async function postQuery(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
@@ -235,7 +252,6 @@ export async function pollQueryStatus(
   maxAttempts: number = 60,
 ): Promise<any> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   let attempts = 0;
   let response: any = null;
@@ -249,9 +265,8 @@ export async function pollQueryStatus(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
