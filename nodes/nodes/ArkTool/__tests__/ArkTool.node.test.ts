@@ -361,7 +361,7 @@ describe("ArkTool Node", () => {
 
     it("should process multiple input items", async () => {
       const mockContext = createMockExecuteFunctions({
-        inputData: [{ json: {} }], { json: {} }],
+        inputData: [{ json: {} }, { json: {} }],
         parameters: {
           selectionMode: "select",
           tool: "web-search",
