@@ -1,0 +1,34 @@
+name: Aikido Security
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    # Run daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  aikido-scan:
+    name: Aikido Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Run Aikido Security Scan
+        uses: aikidosec/github-actions-workflow@v1
+        with:
+          secret-key: ${{ secrets.AIKIDO_SECRET_KEY }}
