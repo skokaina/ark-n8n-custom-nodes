@@ -69,18 +69,22 @@ jobs:
           kubectl get svc -n ark-system
           kubectl get gateway -n ark-system || true
 
-      - name: Create test ARK resources
+      - name: Setup Ollama and ARK test resources
         run: |
           # Wait a bit for CRDs to be fully ready
           sleep 10
 
-          # Apply test resources
-          kubectl apply -f e2e/fixtures/ark-resources.yaml
+          # Deploy Ollama and create ARK test resources
+          # This will:
+          # 1. Deploy Ollama to the cluster
+          # 2. Pull qwen2.5:0.5b model (small, fast, no API key needed)
+          # 3. Create ARK Model, Agents, Team, Memory, Evaluator
+          bash e2e/scripts/setup-ollama-and-ark-resources.sh
 
           # Verify resources were created
           kubectl get agents,models,teams,memories,evaluators -n default
 
-          echo "✓ Test ARK resources created"
+          echo "✓ Ollama and ARK resources ready"
 
       - name: Build custom nodes
         run: |
@@ -173,11 +177,21 @@ jobs:
           echo "=== Pods ==="
           kubectl get pods -A
 
+          echo "=== Ollama logs ==="
+          kubectl logs deployment/ollama -n ollama --tail=100 || echo "No Ollama logs"
+
+          echo "=== Ollama model list ==="
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -- \
+            curl -s http://ollama.ollama.svc.cluster.local/api/tags || echo "Cannot reach Ollama"
+
           echo "=== n8n logs ==="
           kubectl logs deployment/ark-n8n --tail=100
 
           echo "=== ARK Controller logs ==="
           kubectl logs deployment/ark-controller -n ark-system --tail=100
+
+          echo "=== ARK Queries ==="
+          kubectl get queries -n default || echo "No queries found"
 
       - name: Cleanup
         if: always()

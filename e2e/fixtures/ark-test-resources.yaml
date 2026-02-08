@@ -1,0 +1,132 @@
+---
+# Test Model using Ollama (no API key required)
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: test-model
+  namespace: default
+  labels:
+    test: e2e
+    provider: ollama
+spec:
+  provider: ollama
+  type: completion
+  model:
+    value: qwen2.5:0.5b
+  config:
+    ollama:
+      baseUrl:
+        value: "http://ollama.ollama.svc.cluster.local"
+
+---
+# Alternative: Default model for agents
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Model
+metadata:
+  name: default
+  namespace: default
+  labels:
+    test: e2e
+    provider: ollama
+spec:
+  provider: ollama
+  type: completion
+  model:
+    value: qwen2.5:0.5b
+  config:
+    ollama:
+      baseUrl:
+        value: "http://ollama.ollama.svc.cluster.local"
+
+---
+# Test Agent for E2E testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: test-agent
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  modelRef:
+    name: test-model
+    namespace: default
+  prompt: |
+    You are a helpful test agent for E2E testing.
+    Respond concisely to test queries.
+    Keep responses under 50 words.
+  temperature: 0.7
+  maxTokens: 100
+
+---
+# Math Agent for specific testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: math-agent
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  modelRef:
+    name: test-model
+    namespace: default
+  prompt: |
+    You are a math assistant.
+    Solve math problems accurately and show your work.
+    Keep responses concise.
+  temperature: 0.3
+  maxTokens: 150
+
+---
+# Test Team for E2E testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Team
+metadata:
+  name: test-team
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  agents:
+    - name: test-agent
+      namespace: default
+    - name: math-agent
+      namespace: default
+  orchestration:
+    type: sequential
+
+---
+# Test Memory for E2E testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Memory
+metadata:
+  name: test-memory
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  type: buffer
+  maxMessages: 20
+  namespace: default
+
+---
+# Test Evaluator for E2E testing
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Evaluator
+metadata:
+  name: test-evaluator
+  namespace: default
+  labels:
+    test: e2e
+spec:
+  dimensions:
+    - name: accuracy
+      description: How accurate is the response
+      weight: 1.0
+    - name: relevance
+      description: How relevant is the response
+      weight: 0.8
+  modelRef:
+    name: test-model
+    namespace: default

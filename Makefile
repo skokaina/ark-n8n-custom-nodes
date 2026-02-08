@@ -62,10 +62,9 @@ e2e-create: ## Create new E2E environment from scratch
 	@echo "Installing ARK to cluster (with gateway)..."
 	ark install --yes --wait-for-ready 5m --verbose
 	@echo "✓ ARK installed successfully"
-	@echo "Creating test ARK resources..."
-	kubectl apply -f e2e/fixtures/ark-resources.yaml || echo "⚠️  Could not create test resources (ARK CRDs may not be ready yet)"
-	@sleep 5
-	@echo "✓ Test resources created"
+	@echo "Setting up Ollama and ARK test resources..."
+	bash e2e/scripts/setup-ollama-and-ark-resources.sh
+	@echo "✓ Ollama and ARK resources ready"
 	@echo "Building Docker image..."
 	cd nodes && npm run build && cd ..
 	docker build -t ark-n8n:test .
@@ -137,6 +136,15 @@ e2e-ui: ## Run E2E tests with UI (requires e2e-setup first)
 	@echo "Opening Playwright UI..."
 	cd e2e && npx playwright test --ui
 	@pkill -f "kubectl port-forward svc/ark-n8n-proxy" || true
+
+e2e-webhook: ## Run webhook E2E test (end-to-end workflow execution with K8s verification)
+	@bash e2e/scripts/run-webhook-test.sh
+
+e2e-webhook-debug: ## Run webhook E2E test with debug output and headed browser
+	@bash e2e/scripts/run-webhook-test.sh --headed --debug
+
+e2e-ark-test-crds: ## Setup Ollama and create ARK test resources (Model, Agents, Team, Memory)
+	@bash e2e/scripts/setup-ollama-and-ark-resources.sh
 
 e2e-cleanup: ## Cleanup E2E test environment
 	@echo "Cleaning up k3d cluster..."
