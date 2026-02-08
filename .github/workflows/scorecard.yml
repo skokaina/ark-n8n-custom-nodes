@@ -1,0 +1,63 @@
+name: OSSF Scorecard
+
+on:
+  # Run weekly on Mondays
+  schedule:
+    - cron: '0 2 * * 1'
+  # Run on pushes to main branch
+  push:
+    branches:
+      - main
+  # Allow manual trigger
+  workflow_dispatch:
+
+# Required permissions for publishing results
+permissions:
+  # Needed to upload the results to code-scanning dashboard
+  security-events: write
+  # Needed to publish results to OpenSSF REST API
+  id-token: write
+  # Required to read repository contents
+  contents: read
+  # Required to read repository actions
+  actions: read
+  # Required to read issues for issue management analysis
+  issues: read
+  # Required to read pull requests for code review analysis
+  pull-requests: read
+  # Required to read CI/CD checks
+  checks: read
+
+jobs:
+  analysis:
+    name: Scorecard Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run OSSF Scorecard
+        uses: ossf/scorecard-action@v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # Publish results to OpenSSF REST API for easy access by consumers
+          # (Disabled by default to avoid quota issues)
+          publish_results: true
+
+      # Upload the results as artifacts
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      # Upload the results to GitHub's code scanning dashboard
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

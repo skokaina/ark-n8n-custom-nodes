@@ -1,5 +1,10 @@
 # ARK Custom Nodes for n8n
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/skokaina/ark-n8n-custom-nodes/badge)](https://scorecard.dev/viewer/?uri=github.com/skokaina/ark-n8n-custom-nodes)
+[![codecov](https://codecov.io/gh/skokaina/ark-n8n-custom-nodes/branch/main/graph/badge.svg)](https://codecov.io/gh/skokaina/ark-n8n-custom-nodes)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=skokaina_ark-n8n-custom-nodes&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=skokaina_ark-n8n-custom-nodes)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=skokaina_ark-n8n-custom-nodes&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=skokaina_ark-n8n-custom-nodes)
+
 Custom n8n nodes for ARK (Agentic Runtime for Kubernetes) - compose AI agents, teams, and quality gates in visual workflows.
 
 ## Quick Start
