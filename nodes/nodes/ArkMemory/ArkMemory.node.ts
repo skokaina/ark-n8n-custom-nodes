@@ -67,7 +67,7 @@ export class ArkMemory implements INodeType {
               url: `${baseUrl}/v1/namespaces/${namespace}/memories`,
               json: true,
             });
-          } catch (namespacedError) {
+          } catch (_namespacedError) {
             // Fallback to non-namespaced endpoint
             response = await this.helpers.request({
               method: "GET",
@@ -92,7 +92,7 @@ export class ArkMemory implements INodeType {
 
           // Return empty if no memories found
           return [];
-        } catch (error) {
+        } catch (_error) {
           // If memories endpoint fails, return empty array
           return [];
         }
@@ -123,7 +123,7 @@ export class ArkMemory implements INodeType {
 
         memoryType = memoryResponse.spec?.type || "buffer";
         maxMessages = memoryResponse.spec?.maxMessages || 20;
-      } catch (error) {
+      } catch (_error) {
         // Use defaults if fetch fails
       }
 

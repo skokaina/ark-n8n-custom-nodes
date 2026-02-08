@@ -70,6 +70,7 @@ export function createMockExecuteFunctions(
     ): Promise<unknown> => {
       return null;
     },
+    continueOnFail: () => false,
     helpers: helpers as any,
   };
 }

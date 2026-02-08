@@ -6,6 +6,7 @@ import {
   INodeType,
   INodeTypeDescription,
 } from "n8n-workflow";
+import { extractResponseContent } from "../../utils/arkHelpers";
 
 export class ArkTeam implements INodeType {
   description: INodeTypeDescription = {
@@ -87,107 +88,119 @@ export class ArkTeam implements INodeType {
     const baseUrl = credentials.baseUrl as string;
 
     for (let i = 0; i < items.length; i++) {
-      const team = this.getNodeParameter("team", i) as string;
-      const input = this.getNodeParameter("input", i) as string;
-      const wait = this.getNodeParameter("wait", i) as boolean;
+      try {
+        const team = this.getNodeParameter("team", i) as string;
+        const input = this.getNodeParameter("input", i) as string;
+        const wait = this.getNodeParameter("wait", i) as boolean;
 
-      const queryName = `n8n-${team}-${Date.now()}`;
+        const queryName = `n8n-${team}-${Date.now()}`;
 
-      // Get workflow and execution context
-      const workflow = this.getWorkflow();
-      const executionId = this.getExecutionId();
+        // Get workflow and execution context
+        const workflow = this.getWorkflow();
+        const executionId = this.getExecutionId();
 
-      // Get session ID from chat session (if available from input data)
-      const itemData = items[i].json;
-      const chatSessionId =
-        itemData.sessionId ||
-        itemData.chatSessionId ||
-        itemData.session_id ||
-        itemData.chat_session_id ||
-        "unknown";
+        // Get session ID from chat session (if available from input data)
+        const itemData = items[i].json;
+        const chatSessionId =
+          itemData.sessionId ||
+          itemData.chatSessionId ||
+          itemData.session_id ||
+          itemData.chat_session_id ||
+          "unknown";
 
-      const queryBody: any = {
-        name: queryName,
-        type: "user",
-        input: input,
-        targets: [
-          {
-            type: "team",
-            name: team,
+        const queryBody: any = {
+          name: queryName,
+          type: "user",
+          input: input,
+          targets: [
+            {
+              type: "team",
+              name: team,
+            },
+          ],
+          metadata: {
+            annotations: {
+              "ark.mckinsey.com/run-id": executionId,
+              "ark.mckinsey.com/workflow-id": workflow.id,
+              "ark.mckinsey.com/session-id": chatSessionId,
+            },
+            labels: {
+              n8n_workflow_name: workflow.name ?? "unknown",
+              n8n_workflow_id: workflow.id ?? "unknown",
+              n8n_execution_id: executionId,
+              n8n_team_name: team,
+              n8n_session_id: chatSessionId,
+            },
           },
-        ],
-        metadata: {
-          annotations: {
-            "ark.mckinsey.com/run-id": executionId,
-            "ark.mckinsey.com/workflow-id": workflow.id,
-            "ark.mckinsey.com/session-id": chatSessionId,
-          },
-          labels: {
-            n8n_workflow_name: workflow.name ?? "unknown",
-            n8n_workflow_id: workflow.id ?? "unknown",
-            n8n_execution_id: executionId,
-            n8n_team_name: team,
-            n8n_session_id: chatSessionId,
-          },
-        },
-      };
+        };
 
-      await this.helpers.request({
-        method: "POST",
-        url: `${baseUrl}/v1/queries`,
-        body: queryBody,
-        json: true,
-      });
-
-      if (!wait) {
-        returnData.push({
-          json: {
-            queryName: queryName,
-            status: "pending",
-            message: "Query created, not waiting for completion",
-          },
-        });
-        continue;
-      }
-
-      let attempts = 0;
-      const maxAttempts = 60;
-      let response: any = null;
-
-      while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-
-        const queryStatus = await this.helpers.request({
-          method: "GET",
-          url: `${baseUrl}/v1/queries/${queryName}`,
+        await this.helpers.request({
+          method: "POST",
+          url: `${baseUrl}/v1/queries`,
+          body: queryBody,
           json: true,
         });
 
-        if (queryStatus.status?.phase === "done") {
-          response = queryStatus;
-          break;
-        } else if (queryStatus.status?.phase === "error") {
+        if (!wait) {
+          returnData.push({
+            json: {
+              queryName: queryName,
+              status: "pending",
+              message: "Query created, not waiting for completion",
+            },
+          });
+          continue;
+        }
+
+        let attempts = 0;
+        const maxAttempts = 60;
+        let response: any = null;
+
+        while (attempts < maxAttempts) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+          const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
+          const queryStatus = await this.helpers.request({
+            method: "GET",
+            url: `${baseUrl}/v1/queries/${queryName}`,
+            json: true,
+          });
+
+          if (queryStatus.status?.phase === "done") {
+            response = queryStatus;
+            break;
+          } else if (queryStatus.status?.phase === "error") {
+            throw new Error(
+              `Query failed: ${extractResponseContent(queryStatus) || "Unknown error"}`,
+            );
+          }
+
+          attempts++;
+        }
+
+        if (!response) {
           throw new Error(
-            `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+            `Query timed out after ${maxAttempts} polling attempts`,
           );
         }
 
-        attempts++;
+        const output = {
+          queryName: queryName,
+          status: response.status?.phase || "unknown",
+          input: input,
+          response: extractResponseContent(response),
+          duration: response.status?.duration || null,
+        };
+
+        returnData.push({ json: output });
+      } catch (error: any) {
+        if (this.continueOnFail()) {
+          returnData.push({ json: { error: error.message } });
+          continue;
+        }
+        throw error;
       }
-
-      if (!response) {
-        throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
-      }
-
-      const output = {
-        queryName: queryName,
-        status: response.status?.phase || "unknown",
-        input: input,
-        response: response.status?.responses?.[0]?.content || "",
-        duration: response.status?.duration || null,
-      };
-
-      returnData.push({ json: output });
     }
 
     return [returnData];

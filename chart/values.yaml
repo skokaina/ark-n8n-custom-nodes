@@ -25,6 +25,8 @@ app:
 
 ark:
   apiUrl: http://ark-api.default.svc.cluster.local:80
+  # Supported ARK API version range. Set to "" to skip the version check.
+  supportedVersions: ">=0.1.50 <0.1.60"
 
   resources:
     limits:

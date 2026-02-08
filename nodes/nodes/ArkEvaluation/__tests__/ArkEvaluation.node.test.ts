@@ -374,6 +374,25 @@ describe("ArkEvaluation Node", () => {
         expect(result.results).toEqual([]);
       });
 
+      it("should filter query targets by search term", async () => {
+        const mockFunctions = createMockLoadOptionsFunctions();
+        mockFunctions.getCurrentNodeParameter = jest
+          .fn()
+          .mockReturnValue("sample-query");
+        (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue(
+          queryDetailFixture,
+        );
+
+        const result =
+          await arkEvaluation.methods!.listSearch!.searchQueryTargets!.call(
+            mockFunctions as ILoadOptionsFunctions,
+            "agent",
+          );
+
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0].value).toBe("agent:test-agent");
+      });
+
       it("should handle fetch errors gracefully", async () => {
         const mockFunctions = createMockLoadOptionsFunctions();
         mockFunctions.getCurrentNodeParameter = jest
@@ -661,6 +680,135 @@ describe("ArkEvaluation Node", () => {
         );
 
         expect((result[0][0].json.status as any).phase).toBe("error");
+      });
+    });
+
+    describe("Authentication", () => {
+      it("should set Authorization header when auth scheme is configured", async () => {
+        const inputData = [createMockNodeExecutionData({})];
+        const parameters = {
+          evaluationType: "direct",
+          evaluator: "test-evaluator",
+          input: "test",
+          output: "test",
+          wait: false,
+          scope: [],
+          minScore: 0.7,
+          temperature: 0.0,
+          maxTokens: "",
+          evaluatorRole: "",
+          context: "",
+          evaluationCriteria: "",
+        };
+        const credentials = {
+          baseUrl: "http://ark-api.local",
+          authScheme: "bearer",
+          bearerToken: "my-jwt-token",
+        };
+
+        const mockFunctions = createMockExecuteFunctions(inputData, parameters, credentials);
+        (mockFunctions.helpers!.request as jest.Mock).mockResolvedValue({ name: "eval-auth" });
+
+        await arkEvaluation.execute.call(mockFunctions as IExecuteFunctions);
+
+        const callArgs = (mockFunctions.helpers!.request as jest.Mock).mock.calls[0][0];
+        expect(callArgs.headers.Authorization).toBe("Bearer my-jwt-token");
+      });
+    });
+
+    describe("Timeout", () => {
+      it("should throw timeout error when evaluation exceeds max wait time", async () => {
+        const inputData = [createMockNodeExecutionData({})];
+        const parameters = {
+          evaluationType: "direct",
+          evaluator: "test-evaluator",
+          input: "test",
+          output: "test",
+          wait: true,
+          timeout: 0, // 0 seconds → immediate timeout
+          scope: [],
+          minScore: 0.7,
+          temperature: 0.0,
+          maxTokens: "",
+          evaluatorRole: "",
+          context: "",
+          evaluationCriteria: "",
+        };
+        const credentials = { baseUrl: "http://ark-api.local" };
+
+        const mockFunctions = createMockExecuteFunctions(inputData, parameters, credentials);
+
+        const mockCreateResponse = { name: "eval-timeout" };
+        // Always return running status
+        (mockFunctions.helpers!.request as jest.Mock)
+          .mockResolvedValueOnce(mockCreateResponse)
+          .mockResolvedValue({ status: { phase: "running" } });
+
+        await expect(
+          arkEvaluation.execute.call(mockFunctions as IExecuteFunctions),
+        ).rejects.toThrow("Evaluation timed out after 0 seconds");
+      });
+    });
+
+    describe("continueOnFail", () => {
+      it("should return error output when continueOnFail is enabled", async () => {
+        const inputData = [createMockNodeExecutionData({})];
+        const parameters = {
+          evaluationType: "direct",
+          evaluator: "test-evaluator",
+          input: "test",
+          output: "test",
+          wait: false,
+          scope: [],
+          minScore: 0.7,
+          temperature: 0.0,
+          maxTokens: "",
+          evaluatorRole: "",
+          context: "",
+          evaluationCriteria: "",
+        };
+        const credentials = { baseUrl: "http://ark-api.local" };
+
+        const mockFunctions = createMockExecuteFunctions(inputData, parameters, credentials);
+        mockFunctions.continueOnFail = () => true;
+        (mockFunctions.helpers!.request as jest.Mock).mockRejectedValue(
+          new Error("API connection failed"),
+        );
+
+        const result = await arkEvaluation.execute.call(
+          mockFunctions as IExecuteFunctions,
+        );
+
+        expect(result[0]).toHaveLength(1);
+        expect(result[0][0].json).toEqual({ error: "API connection failed" });
+      });
+
+      it("should throw when continueOnFail is disabled", async () => {
+        const inputData = [createMockNodeExecutionData({})];
+        const parameters = {
+          evaluationType: "direct",
+          evaluator: "test-evaluator",
+          input: "test",
+          output: "test",
+          wait: false,
+          scope: [],
+          minScore: 0.7,
+          temperature: 0.0,
+          maxTokens: "",
+          evaluatorRole: "",
+          context: "",
+          evaluationCriteria: "",
+        };
+        const credentials = { baseUrl: "http://ark-api.local" };
+
+        const mockFunctions = createMockExecuteFunctions(inputData, parameters, credentials);
+        (mockFunctions.helpers!.request as jest.Mock).mockRejectedValue(
+          new Error("API connection failed"),
+        );
+
+        await expect(
+          arkEvaluation.execute.call(mockFunctions as IExecuteFunctions),
+        ).rejects.toThrow("API connection failed");
       });
     });
 

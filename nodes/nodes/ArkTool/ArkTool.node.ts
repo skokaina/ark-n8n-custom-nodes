@@ -134,7 +134,7 @@ export class ArkTool implements INodeType {
               url: `${baseUrl}/v1/namespaces/${namespace}/tools`,
               json: true,
             });
-          } catch (namespacedError) {
+          } catch (_namespacedError) {
             // Fallback to non-namespaced endpoint
             response = await this.helpers.request({
               method: "GET",
@@ -162,7 +162,7 @@ export class ArkTool implements INodeType {
 
           // If no tools found, return fallback
           throw new Error("No tools found");
-        } catch (error) {
+        } catch (_error) {
           // If tools endpoint fails or returns no data, return built-in tools
           return [
             {

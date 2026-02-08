@@ -1,6 +1,28 @@
 import { IExecuteFunctions } from "n8n-workflow";
 
 /**
+ * Build the Authorization header based on the configured auth scheme.
+ * Returns undefined if authScheme is "none" or not set.
+ */
+export function getAuthHeader(credentials: {
+  authScheme?: string;
+  apiKey?: string;
+  bearerToken?: string;
+}): string | undefined {
+  const scheme = credentials.authScheme || "none";
+
+  if (scheme === "basic" && credentials.apiKey) {
+    return `Basic ${Buffer.from(credentials.apiKey).toString("base64")}`;
+  }
+
+  if (scheme === "bearer" && credentials.bearerToken) {
+    return `Bearer ${credentials.bearerToken}`;
+  }
+
+  return undefined;
+}
+
+/**
  * Get or generate session ID for conversation continuity
  */
 export function getSessionId(
@@ -149,7 +171,6 @@ export async function patchAgent(
   },
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   const patchBody: any = { spec: {} };
 
@@ -176,10 +197,8 @@ export async function patchAgent(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    // Assuming API key format: "pk-ark-xxx:sk-ark-xxx"
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
@@ -197,7 +216,6 @@ export async function postQuery(
   querySpec: any,
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   // ARK API uses flat structure for query body, not metadata + spec
   const queryBody: any = {
@@ -215,9 +233,8 @@ export async function postQuery(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
@@ -225,7 +242,25 @@ export async function postQuery(
 }
 
 /**
- * Poll query status until completion or timeout
+ * Extract the response content from a query result.
+ * ARK API returns a single response per query (not an array).
+ * Supports both legacy (responses array) and current (response string) formats.
+ */
+export function extractResponseContent(queryResult: any): string {
+  // Current ARK API: single response field
+  if (typeof queryResult.status?.response === "string") {
+    return queryResult.status.response;
+  }
+  // Legacy ARK API: responses array with first element
+  if (Array.isArray(queryResult.status?.responses)) {
+    return queryResult.status.responses[0]?.content || "";
+  }
+  return "";
+}
+
+/**
+ * Poll query status until completion or timeout using exponential backoff.
+ * Starts at 1s, doubles each attempt, capped at 10s per interval.
  */
 export async function pollQueryStatus(
   context: IExecuteFunctions,
@@ -235,7 +270,6 @@ export async function pollQueryStatus(
   maxAttempts: number = 60,
 ): Promise<any> {
   const credentials = await context.getCredentials("arkApi");
-  const apiKey = credentials.apiKey as string | undefined;
 
   let attempts = 0;
   let response: any = null;
@@ -249,15 +283,15 @@ export async function pollQueryStatus(
     json: true,
   };
 
-  // Add authentication if API key is provided
-  if (apiKey) {
-    const authHeader = `Basic ${Buffer.from(apiKey).toString("base64")}`;
+  const authHeader = getAuthHeader(credentials as any);
+  if (authHeader) {
     requestOptions.headers.Authorization = authHeader;
   }
 
   while (attempts < maxAttempts) {
-    // Wait 5 seconds between attempts
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+    const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     const queryStatus = await context.helpers.request(requestOptions);
 
@@ -266,7 +300,7 @@ export async function pollQueryStatus(
       break;
     } else if (queryStatus.status?.phase === "error") {
       throw new Error(
-        `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+        `Query failed: ${extractResponseContent(queryStatus) || "Unknown error"}`,
       );
     }
 
@@ -274,7 +308,7 @@ export async function pollQueryStatus(
   }
 
   if (!response) {
-    throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
+    throw new Error(`Query timed out after ${maxAttempts} polling attempts`);
   }
 
   return response;
