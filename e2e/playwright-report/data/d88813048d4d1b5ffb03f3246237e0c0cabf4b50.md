@@ -26,7 +26,7 @@
                   - button "Published" [disabled] [ref=e37]:
                     - generic [ref=e40]: Published
                   - link [ref=e42] [cursor=pointer]:
-                    - /url: /workflow/xST1uKeIJzslI84d/history
+                    - /url: /workflow/Wu2dJecAKjHDhEw8/history
                     - button [ref=e43]:
                       - img [ref=e45]
                   - button [ref=e52] [cursor=pointer]:

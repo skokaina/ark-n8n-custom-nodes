@@ -372,19 +372,17 @@ test.describe('ARK Webhook E2E Test', () => {
 
     // Verify Query spec matches our request
     expect(query.spec.input).toContain(testQuery);
-    expect(query.spec.targets).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'agent',
-          name: 'test-agent'
-        })
-      ])
+    expect(query.spec.target).toEqual(
+      expect.objectContaining({
+        type: 'agent',
+        name: 'test-agent'
+      })
     );
 
     // Step 9: Verify Query response matches webhook response
     console.log('\n9️⃣ Verifying Query response matches webhook response...');
 
-    const queryResponse = query.status?.response || '';
+    const queryResponse = query.status?.response?.content || '';
     const webhookResponse = responseData.response || '';
 
     console.log(`   Query CRD Response: ${queryResponse.substring(0, 100)}...`);
