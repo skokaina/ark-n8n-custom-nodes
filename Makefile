@@ -62,9 +62,9 @@ e2e-create: ## Create new E2E environment from scratch
 	@echo "Installing ARK to cluster (with gateway)..."
 	ark install --yes --wait-for-ready 5m --verbose
 	@echo "✓ ARK installed successfully"
-	@echo "Setting up Ollama and ARK test resources..."
-	bash e2e/scripts/setup-ollama-and-ark-resources.sh
-	@echo "✓ Ollama and ARK resources ready"
+	@echo "Setting up FREE API (Groq) and ARK test resources..."
+	$(MAKE) e2e-ark-free-api
+	@echo "✓ Groq API and ARK resources ready"
 	@echo "Building Docker image..."
 	cd nodes && npm run build && cd ..
 	docker build -t ark-n8n:test .
@@ -143,13 +143,22 @@ e2e-webhook: ## Run webhook E2E test (end-to-end workflow execution with K8s ver
 e2e-webhook-debug: ## Run webhook E2E test with debug output and headed browser
 	@bash e2e/scripts/run-webhook-test.sh --headed --debug
 
-e2e-ark-test-crds: ## Setup Ollama and create ARK test resources (slow, 5-10min first run)
-	@bash e2e/scripts/setup-ollama-and-ark-resources.sh
+e2e-ark-test-crds: ## Setup FREE API (Groq) and create ARK test resources (fast, 30 seconds)
+	@$(MAKE) e2e-ark-free-api
 
-e2e-ark-free-api: ## Setup FREE API (uses HF_API_TOKEN env var or prompts)
+e2e-ark-free-api: ## Setup FREE API (uses GROQ_API_KEY or HF_API_TOKEN env var or prompts)
 	@echo "Setting up FREE LLM API for E2E testing..."
 	@echo ""
-	@if [ -n "$$HF_API_TOKEN" ]; then \
+	@if [ -n "$$GROQ_API_KEY" ]; then \
+		echo "✓ Found GROQ_API_KEY environment variable"; \
+		echo "  Using Groq API automatically"; \
+		echo ""; \
+		kubectl create secret generic groq-api-key --from-literal=api-key="$$GROQ_API_KEY" 2>/dev/null || \
+			(kubectl delete secret groq-api-key 2>/dev/null; \
+			kubectl create secret generic groq-api-key --from-literal=api-key="$$GROQ_API_KEY"); \
+		kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; \
+		echo "✅ Groq API configured from GROQ_API_KEY!"; \
+	elif [ -n "$$HF_API_TOKEN" ]; then \
 		echo "✓ Found HF_API_TOKEN environment variable"; \
 		echo "  Using HuggingFace API automatically"; \
 		echo ""; \
@@ -164,7 +173,7 @@ e2e-ark-free-api: ## Setup FREE API (uses HF_API_TOKEN env var or prompts)
 		echo "  2) Groq (Fastest - no credit card, 1000 req/day)"; \
 		echo "  3) OpenRouter (Free model router)"; \
 		echo ""; \
-		echo "Tip: Set HF_API_TOKEN environment variable to skip this prompt"; \
+		echo "Tip: Set GROQ_API_KEY or HF_API_TOKEN environment variable to skip this prompt"; \
 		echo ""; \
 		read -p "Enter choice [1-3]: " choice; \
 		case $$choice in \
