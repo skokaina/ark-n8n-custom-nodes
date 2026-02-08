@@ -1,4 +1,4 @@
-ARG N8N_VERSION=latest
+ARG N8N_VERSION=2.6.3
 FROM docker.n8n.io/n8nio/n8n:${N8N_VERSION}
 
 USER root

@@ -67,7 +67,7 @@ export class ArkModelSelector implements INodeType {
               url: `${baseUrl}/v1/namespaces/${namespace}/models`,
               json: true,
             });
-          } catch (namespacedError) {
+          } catch (_namespacedError) {
             // Fallback to non-namespaced endpoint
             response = await this.helpers.request({
               method: "GET",
@@ -93,7 +93,7 @@ export class ArkModelSelector implements INodeType {
 
           // Fallback if no models found
           throw new Error("No models found");
-        } catch (error) {
+        } catch (_error) {
           // Fallback to common models if API fails
           return [
             { name: "GPT-4", value: "gpt-4" },
@@ -131,7 +131,7 @@ export class ArkModelSelector implements INodeType {
         modelType =
           modelResponse.spec?.model || modelResponse.model || modelName;
         temperature = modelResponse.spec?.temperature || 0.7;
-      } catch (error) {
+      } catch (_error) {
         // Use defaults if fetch fails
       }
 

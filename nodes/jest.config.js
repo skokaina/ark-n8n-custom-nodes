@@ -66,7 +66,6 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
-      isolatedModules: true,
       diagnostics: {
         ignoreCodes: [2345, 2353, 18048, 2554]
       }
