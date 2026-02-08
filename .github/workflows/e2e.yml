@@ -69,22 +69,30 @@ jobs:
           kubectl get svc -n ark-system
           kubectl get gateway -n ark-system || true
 
-      - name: Setup Ollama and ARK test resources
+      - name: Setup Free API and ARK test resources
+        env:
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
         run: |
           # Wait a bit for CRDs to be fully ready
           sleep 10
 
-          # Deploy Ollama and create ARK test resources
+          # Create HuggingFace API key secret
+          # Using free tier - no credit card required
+          # Get your key at: https://huggingface.co/settings/tokens
+          kubectl create secret generic huggingface-api-key \
+            --from-literal=api-key="$HUGGINGFACE_API_KEY"
+
+          # Apply ARK test resources using free API
           # This will:
-          # 1. Deploy Ollama to the cluster
-          # 2. Pull qwen2.5:0.5b model (small, fast, no API key needed)
-          # 3. Create ARK Model, Agents, Team, Memory, Evaluator
-          bash e2e/scripts/setup-ollama-and-ark-resources.sh
+          # 1. Create Model pointing to HuggingFace API
+          # 2. Create Agents, Team, Memory, Evaluator
+          # NO IMAGE DOWNLOAD - instant setup!
+          kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml
 
           # Verify resources were created
           kubectl get agents,models,teams,memories,evaluators -n default
 
-          echo "✓ Ollama and ARK resources ready"
+          echo "✓ Free API and ARK resources ready"
 
       - name: Build custom nodes
         run: |

@@ -143,8 +143,67 @@ e2e-webhook: ## Run webhook E2E test (end-to-end workflow execution with K8s ver
 e2e-webhook-debug: ## Run webhook E2E test with debug output and headed browser
 	@bash e2e/scripts/run-webhook-test.sh --headed --debug
 
-e2e-ark-test-crds: ## Setup Ollama and create ARK test resources (Model, Agents, Team, Memory)
+e2e-ark-test-crds: ## Setup Ollama and create ARK test resources (slow, 5-10min first run)
 	@bash e2e/scripts/setup-ollama-and-ark-resources.sh
+
+e2e-ark-free-api: ## Setup FREE API (HuggingFace/Groq) for E2E testing (fast, 30s setup)
+	@echo "Setting up FREE LLM API for E2E testing..."
+	@echo ""
+	@echo "Choose your FREE API provider:"
+	@echo "  1) HuggingFace (Recommended - no credit card, 300+ models)"
+	@echo "  2) Groq (Fastest - no credit card, 1000 req/day)"
+	@echo "  3) OpenRouter (Free model router)"
+	@echo ""
+	@read -p "Enter choice [1-3]: " choice; \
+	case $$choice in \
+		1) \
+			echo ""; \
+			echo "Get your FREE HuggingFace API key:"; \
+			echo "  https://huggingface.co/settings/tokens"; \
+			echo ""; \
+			read -sp "Enter API key (hf_...): " key; \
+			echo ""; \
+			kubectl create secret generic huggingface-api-key --from-literal=api-key="$$key" || \
+				kubectl delete secret huggingface-api-key && \
+				kubectl create secret generic huggingface-api-key --from-literal=api-key="$$key"; \
+			kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; \
+			echo "✅ HuggingFace API configured!"; \
+			;; \
+		2) \
+			echo ""; \
+			echo "Get your FREE Groq API key:"; \
+			echo "  https://console.groq.com/keys"; \
+			echo ""; \
+			read -sp "Enter API key (gsk_...): " key; \
+			echo ""; \
+			kubectl create secret generic groq-api-key --from-literal=api-key="$$key" || \
+				kubectl delete secret groq-api-key && \
+				kubectl create secret generic groq-api-key --from-literal=api-key="$$key"; \
+			kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; \
+			kubectl patch agent test-agent -n default --type=merge -p '{"spec":{"modelRef":{"name":"groq-model"}}}'; \
+			echo "✅ Groq API configured!"; \
+			;; \
+		3) \
+			echo ""; \
+			echo "Get your FREE OpenRouter API key:"; \
+			echo "  https://openrouter.ai/keys"; \
+			echo ""; \
+			read -sp "Enter API key (sk-or-...): " key; \
+			echo ""; \
+			kubectl create secret generic openrouter-api-key --from-literal=api-key="$$key" || \
+				kubectl delete secret openrouter-api-key && \
+				kubectl create secret generic openrouter-api-key --from-literal=api-key="$$key"; \
+			kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; \
+			kubectl patch agent test-agent -n default --type=merge -p '{"spec":{"modelRef":{"name":"default"}}}'; \
+			echo "✅ OpenRouter API configured!"; \
+			;; \
+		*) \
+			echo "Invalid choice"; \
+			exit 1; \
+			;; \
+	esac
+	@echo ""
+	@echo "View resources: kubectl get models,agents,teams -n default"
 
 e2e-cleanup: ## Cleanup E2E test environment
 	@echo "Cleaning up k3d cluster..."

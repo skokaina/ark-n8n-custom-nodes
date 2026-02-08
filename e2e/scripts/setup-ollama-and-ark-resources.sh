@@ -31,9 +31,20 @@ echo -e "${YELLOW}Step 1: Deploying Ollama to cluster...${NC}"
 kubectl apply -f e2e/fixtures/ollama-deployment.yaml
 
 echo -e "${YELLOW}Step 2: Waiting for Ollama deployment to be ready...${NC}"
-kubectl wait --for=condition=available --timeout=120s deployment/ollama -n ollama || {
+echo "⏳ This may take 5-10 minutes on first run (downloading ~1.5GB image)"
+echo "   Subsequent runs will be faster with cached image"
+echo ""
+
+# Wait with progress indication
+kubectl wait --for=condition=available --timeout=600s deployment/ollama -n ollama || {
   echo -e "${RED}Error: Ollama deployment failed to become ready${NC}"
-  echo "Check logs: kubectl logs deployment/ollama -n ollama"
+  echo ""
+  echo "Debugging information:"
+  kubectl get pods -n ollama
+  echo ""
+  kubectl describe pod -n ollama -l app=ollama | grep -A 10 "Events:"
+  echo ""
+  echo "Check full logs: kubectl logs deployment/ollama -n ollama"
   exit 1
 }
 echo -e "${GREEN}✓ Ollama deployment ready${NC}"
