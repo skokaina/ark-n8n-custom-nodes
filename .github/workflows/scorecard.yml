@@ -11,27 +11,23 @@ on:
   # Allow manual trigger
   workflow_dispatch:
 
-# Required permissions for publishing results
-permissions:
-  # Needed to upload the results to code-scanning dashboard
-  security-events: write
-  # Needed to publish results to OpenSSF REST API
-  id-token: write
-  # Required to read repository contents
-  contents: read
-  # Required to read repository actions
-  actions: read
-  # Required to read issues for issue management analysis
-  issues: read
-  # Required to read pull requests for code review analysis
-  pull-requests: read
-  # Required to read CI/CD checks
-  checks: read
+# Set top-level permissions to read-all
+permissions: read-all
 
 jobs:
   analysis:
     name: Scorecard Analysis
     runs-on: ubuntu-latest
+    # Grant write permissions only at job level
+    permissions:
+      # Needed to upload the results to code-scanning dashboard
+      security-events: write
+      # Needed to publish results to OpenSSF REST API
+      id-token: write
+      # Required to read repository contents
+      contents: read
+      # Required to read repository actions
+      actions: read
 
     steps:
       - name: Checkout code
