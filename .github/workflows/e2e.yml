@@ -71,16 +71,17 @@ jobs:
 
       - name: Setup Free API and ARK test resources
         env:
-          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
         run: |
           # Wait a bit for CRDs to be fully ready
           sleep 10
 
-          # Create HuggingFace API key secret
+          # Create HuggingFace API key secret from HF_API_TOKEN
           # Using free tier - no credit card required
           # Get your key at: https://huggingface.co/settings/tokens
+          # Add to GitHub repo secrets as: HF_API_TOKEN
           kubectl create secret generic huggingface-api-key \
-            --from-literal=api-key="$HUGGINGFACE_API_KEY"
+            --from-literal=api-key="$HF_API_TOKEN"
 
           # Apply ARK test resources using free API
           # This will:
@@ -92,7 +93,7 @@ jobs:
           # Verify resources were created
           kubectl get agents,models,teams,memories,evaluators -n default
 
-          echo "✓ Free API and ARK resources ready"
+          echo "✓ Free API and ARK resources ready (HuggingFace)"
 
       - name: Build custom nodes
         run: |
