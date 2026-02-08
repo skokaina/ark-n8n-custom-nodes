@@ -35,6 +35,7 @@
     {
       "parameters": {
         "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"{{ $json.status }}\",\n  \"response\": \"{{ $json.response }}\",\n  \"queryName\": \"{{ $json.queryName }}\"\n}",
         "options": {}
       },
       "id": "respond-webhook",
