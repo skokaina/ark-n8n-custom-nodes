@@ -185,20 +185,29 @@ jobs:
 
       - name: Wait for ARK webhook service
         run: |
-          echo "Waiting for ARK webhook service to be ready..."
-          kubectl wait --for=condition=available --timeout=120s \
-            deployment/ark-webhook -n ark-system || true
+          echo "Waiting for ARK webhook to be ready..."
 
-          # Additional wait for webhook to be fully responsive
-          for i in {1..30}; do
-            if kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io ark-validating-webhook-configuration &> /dev/null; then
-              echo "✓ Webhook configuration ready"
-              sleep 5
+          # Wait for webhook configuration to exist
+          echo "Checking for webhook configuration..."
+          for i in {1..60}; do
+            if kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io 2>/dev/null | grep -q ark; then
+              echo "✓ Webhook configuration found"
               break
             fi
-            echo "Waiting for webhook configuration... ($i/30)"
+            echo "Waiting for webhook configuration... ($i/60)"
             sleep 2
           done
+
+          # Wait for ark-webhook-service to be accessible
+          echo "Checking for webhook service..."
+          kubectl get svc -n ark-system
+
+          # Give webhook extra time to warm up (it's part of controller or separate pod)
+          echo "Waiting 30s for webhook to become fully responsive..."
+          sleep 30
+
+          # Verify webhook endpoints exist
+          kubectl get endpoints -n ark-system | grep webhook || echo "Note: No separate webhook endpoint (may be part of controller)"
 
       - name: Setup Free API and ARK test resources
         env:
@@ -209,18 +218,22 @@ jobs:
           kubectl create secret generic groq-api-key \
             --from-literal=api-key="$GROQ_API_KEY"
 
-          # Apply resources with retry (webhook might need more warmup time)
-          for i in {1..3}; do
-            echo "Attempting to create ARK resources (attempt $i/3)..."
-            if kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; then
+          # Apply resources with retry (webhook needs warmup time)
+          for i in {1..5}; do
+            echo "Attempting to create ARK resources (attempt $i/5)..."
+            if kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml 2>&1; then
               echo "✓ ARK resources created successfully"
               break
             else
-              if [ $i -lt 3 ]; then
-                echo "Failed, retrying in 10 seconds..."
-                sleep 10
+              if [ $i -lt 5 ]; then
+                echo "Failed, waiting 20 seconds for webhook to warm up..."
+                sleep 20
               else
-                echo "Failed after 3 attempts"
+                echo "❌ Failed after 5 attempts"
+                echo "Checking webhook status..."
+                kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io
+                kubectl get pods -n ark-system
+                kubectl logs -n ark-system deployment/ark-controller --tail=50 || true
                 exit 1
               fi
             fi
