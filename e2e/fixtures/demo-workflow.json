@@ -1,0 +1,128 @@
+{
+  "name": "ARK E2E Test Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "agent": "test-agent",
+        "input": "What is 2+2?",
+        "waitForCompletion": true,
+        "timeout": "30s"
+      },
+      "id": "ark-agent",
+      "name": "ARK Agent",
+      "type": "n8n-nodes-ark.arkAgent",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4"
+      },
+      "id": "ark-model",
+      "name": "ARK Model",
+      "type": "n8n-nodes-ark.arkModel",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "team": "test-team",
+        "input": "Collaborate on this task",
+        "waitForCompletion": true
+      },
+      "id": "ark-team",
+      "name": "ARK Team",
+      "type": "n8n-nodes-ark.arkTeam",
+      "typeVersion": 1,
+      "position": [650, 400],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "evaluator": "test-evaluator",
+        "input": "Test input",
+        "output": "Test output",
+        "evaluationType": "direct"
+      },
+      "id": "ark-evaluation",
+      "name": "ARK Evaluation",
+      "type": "n8n-nodes-ark.arkEvaluation",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "ARK Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Agent": {
+      "main": [
+        [
+          {
+            "node": "ARK Model",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ARK Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Model": {
+      "main": [
+        [
+          {
+            "node": "ARK Evaluation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "tags": ["e2e", "test"]
+}

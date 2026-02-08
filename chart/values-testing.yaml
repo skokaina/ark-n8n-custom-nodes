@@ -1,0 +1,40 @@
+# Testing values - disables authentication for E2E tests
+# Usage: helm install ark-n8n ./chart -f chart/values-testing.yaml
+
+app:
+  env:
+    # Disable ALL authentication for testing
+    N8N_BASIC_AUTH_ACTIVE: "false"
+    N8N_USER_MANAGEMENT_DISABLED: "true"  # Skip owner account setup
+
+    # Simpler hostname for testing (match proxy port for WebSocket)
+    N8N_HOST: localhost:8080
+    N8N_EDITOR_BASE_URL: http://localhost:8080
+    WEBHOOK_URL: http://localhost:8080
+
+    # Skip onboarding survey for testing
+    N8N_PERSONALIZATION_ENABLED: "false"
+
+    # Verbose logging for debugging
+    N8N_LOG_LEVEL: debug
+    N8N_LOG_OUTPUT: console
+
+# Disable HTTPRoute for testing (use port-forward)
+httpRoute:
+  enabled: false
+
+# Smaller resource requests for testing
+ark:
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Enable demo proxy with auto-login for E2E testing
+demo:
+  enabled: true
+  email: "admin@example.com"
+  password: "Admin123!@#"

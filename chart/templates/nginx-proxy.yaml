@@ -1,0 +1,305 @@
+{{- if .Values.demo.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ark-n8n.fullname" . }}-nginx
+  labels:
+    {{- include "ark-n8n.labels" . | nindent 4 }}
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      upstream n8n {
+        server {{ include "ark-n8n.fullname" . }}:{{ .Values.service.port }};
+      }
+
+      # Map to set CORS origin dynamically
+      map $http_origin $cors_origin {
+        default "";
+        "~^http://localhost(:[0-9]+)?$" $http_origin;
+        "~^http://127\.0\.0\.1(:[0-9]+)?$" $http_origin;
+        "~^http://.*\.127\.0\.0\.1\.nip\.io$" $http_origin;
+        "~^http://ark-n8n.*\.nip\.io$" $http_origin;
+      }
+
+      server {
+        listen 8080;
+        server_name _;
+        client_max_body_size 50M;
+
+        # Enable WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        # Forward headers - preserve full Host header including port
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeouts for WebSocket and long-running workflows
+        proxy_connect_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_read_timeout 3600s;
+
+        # Auto-login landing page
+        location = / {
+          root /usr/share/nginx/html;
+          try_files /auto-login.html =404;
+        }
+
+        # Proxy all other requests to n8n with CORS support
+        location / {
+          # Handle OPTIONS (preflight) requests
+          if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin $cors_origin always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization" always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Max-Age 1728000;
+            add_header Content-Type 'text/plain; charset=utf-8';
+            add_header Content-Length 0;
+            return 204;
+          }
+
+          # CORS headers for all responses
+          add_header Access-Control-Allow-Origin $cors_origin always;
+          add_header Access-Control-Allow-Credentials "true" always;
+
+          proxy_pass http://n8n;
+          proxy_buffering off;
+        }
+
+        # Health check
+        location = /healthz {
+          access_log off;
+          return 200 "healthy\n";
+          add_header Content-Type text/plain;
+        }
+      }
+
+      # WebSocket connection upgrade map
+      map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+      }
+    }
+
+  auto-login.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>ARK n8n - Auto Login</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        .container {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          max-width: 500px;
+          width: 100%;
+          padding: 40px;
+          text-align: center;
+        }
+        h1 {
+          color: #333;
+          margin-bottom: 20px;
+          font-size: 28px;
+        }
+        .spinner {
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #667eea;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+          margin: 30px auto;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .status {
+          color: #666;
+          margin-top: 20px;
+        }
+        .creds {
+          background: #f8f9fa;
+          padding: 15px;
+          border-radius: 8px;
+          margin-top: 20px;
+          font-family: monospace;
+          font-size: 14px;
+        }
+        .manual-link {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #eee;
+        }
+        .manual-link a {
+          color: #667eea;
+          text-decoration: none;
+          font-weight: 500;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🚀 ARK n8n Demo</h1>
+        <div class="spinner"></div>
+        <p class="status" id="status">Logging you in automatically...</p>
+
+        <div class="creds">
+          <strong>Demo Credentials:</strong><br>
+          {{ .Values.demo.email }}<br>
+          {{ .Values.demo.password }}
+        </div>
+
+        <div class="manual-link">
+          <p>If auto-login fails:</p>
+          <a href="/signin" id="manual-link">Click here to login manually</a>
+        </div>
+      </div>
+
+      <script>
+        // Auto-login using n8n API
+        async function autoLogin() {
+          const credentials = {
+            emailOrLdapLoginId: '{{ .Values.demo.email }}',
+            password: '{{ .Values.demo.password }}'
+          };
+
+          try {
+            document.getElementById('status').textContent = 'Authenticating...';
+
+            const response = await fetch('/rest/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(credentials),
+              credentials: 'include'
+            });
+
+            if (response.ok) {
+              document.getElementById('status').textContent = 'Success! Redirecting...';
+              setTimeout(() => {
+                window.location.href = '/workflows';
+              }, 500);
+            } else {
+              throw new Error('Login failed');
+            }
+          } catch (error) {
+            console.error('Auto-login failed:', error);
+            document.getElementById('status').innerHTML =
+              '⚠️ Auto-login failed. <a href="/signin">Click here</a> to login manually.';
+          }
+        }
+
+        // Run auto-login after page loads
+        window.addEventListener('load', () => {
+          setTimeout(autoLogin, 1000);
+        });
+      </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ark-n8n.fullname" . }}-nginx
+  labels:
+    {{- include "ark-n8n.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ark-n8n.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: proxy
+  template:
+    metadata:
+      labels:
+        {{- include "ark-n8n.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: proxy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+          name: http
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: nginx-html
+          mountPath: /usr/share/nginx/html/auto-login.html
+          subPath: auto-login.html
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 5
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: {{ include "ark-n8n.fullname" . }}-nginx
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+      - name: nginx-html
+        configMap:
+          name: {{ include "ark-n8n.fullname" . }}-nginx
+          items:
+          - key: auto-login.html
+            path: auto-login.html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ark-n8n.fullname" . }}-proxy
+  labels:
+    {{- include "ark-n8n.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proxy
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "ark-n8n.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: proxy
+{{- end }}

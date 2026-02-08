@@ -1,0 +1,185 @@
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: "npm"
+          cache-dependency-path: |
+            nodes/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install k3d
+        run: |
+          curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
+
+      - name: Create k3d cluster
+        run: |
+          k3d cluster create ark-test \
+            --agents 2 \
+            --port "5678:5678@loadbalancer" \
+            --wait \
+            --timeout 5m
+
+      - name: Verify cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install ARK CLI
+        run: |
+          # Install ARK CLI globally
+          npm install -g @agents-at-scale/ark@0.1.51 || npm install -g @agents-at-scale/ark
+
+          # Verify installation
+          ark --version
+
+      - name: Install ARK to cluster
+        run: |
+          # Install ARK components to k3d cluster (with gateway)
+          # --yes auto-accepts gateway installation
+          # --wait-for-ready waits for all components
+          ark install --yes --wait-for-ready 5m --verbose
+
+          echo "✓ ARK installed successfully"
+
+          # Verify ARK components
+          kubectl get pods -n ark-system
+          kubectl get svc -n ark-system
+          kubectl get gateway -n ark-system || true
+
+      - name: Create test ARK resources
+        run: |
+          # Wait a bit for CRDs to be fully ready
+          sleep 10
+
+          # Apply test resources
+          kubectl apply -f e2e/fixtures/ark-resources.yaml
+
+          # Verify resources were created
+          kubectl get agents,models,teams,memories,evaluators -n default
+
+          echo "✓ Test ARK resources created"
+
+      - name: Build custom nodes
+        run: |
+          cd nodes
+          npm ci
+          npm run build
+
+      - name: Build Docker image
+        run: |
+          docker build -t ark-n8n:test .
+
+      - name: Load image into k3d
+        run: |
+          k3d image import ark-n8n:test -c ark-test
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "3.14.0"
+
+      - name: Install ark-n8n via Helm
+        run: |
+          helm install ark-n8n ./chart \
+            -f chart/values-testing.yaml \
+            --set app.image.repository=ark-n8n \
+            --set app.image.tag=test \
+            --set app.image.pullPolicy=Never \
+            --set ark.apiUrl=http://ark-api.ark-system.svc.cluster.local \
+            --wait \
+            --timeout 5m
+
+      - name: Wait for n8n to be ready
+        run: |
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/ark-n8n
+
+          # Wait for nginx proxy to be ready
+          kubectl wait --for=condition=available --timeout=60s \
+            deployment/ark-n8n-nginx || true
+
+          # Additional readiness check
+          kubectl get pods
+          kubectl logs deployment/ark-n8n --tail=50
+
+      - name: Setup n8n account
+        run: |
+          # Port forward to n8n directly for account setup
+          kubectl port-forward svc/ark-n8n 5678:5678 > /dev/null 2>&1 &
+          sleep 5
+
+          # Create default account
+          cd e2e && node scripts/setup-n8n-account.js
+
+          # Stop port forward
+          pkill -f "kubectl port-forward svc/ark-n8n" || true
+
+      - name: Port forward nginx proxy
+        run: |
+          # Port forward to auto-login proxy
+          kubectl port-forward svc/ark-n8n-proxy 5678:80 &
+          sleep 5
+
+          # Verify auto-login page is accessible
+          curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:5678
+
+      - name: Install Playwright
+        run: |
+          cd e2e
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: |
+          cd e2e
+          npx playwright test
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -A
+
+          echo "=== n8n logs ==="
+          kubectl logs deployment/ark-n8n --tail=100
+
+          echo "=== ARK Controller logs ==="
+          kubectl logs deployment/ark-controller -n ark-system --tail=100
+
+      - name: Cleanup
+        if: always()
+        run: |
+          k3d cluster delete ark-test
