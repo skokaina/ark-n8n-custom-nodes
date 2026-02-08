@@ -124,8 +124,10 @@ jobs:
           platforms: linux/amd64
           push: false
           tags: ark-n8n:ci-test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
+          cache-to: |
+            type=gha,mode=max
 
   # Step 3: E2E Tests (only on main branch, only if build passes)
   e2e:
@@ -181,16 +183,51 @@ jobs:
           kubectl get pods -n ark-system
           kubectl get svc -n ark-system
 
+      - name: Wait for ARK webhook service
+        run: |
+          echo "Waiting for ARK webhook service to be ready..."
+          kubectl wait --for=condition=available --timeout=120s \
+            deployment/ark-webhook -n ark-system || true
+
+          # Additional wait for webhook to be fully responsive
+          for i in {1..30}; do
+            if kubectl get validatingwebhookconfigurations.admissionregistration.k8s.io ark-validating-webhook-configuration &> /dev/null; then
+              echo "✓ Webhook configuration ready"
+              sleep 5
+              break
+            fi
+            echo "Waiting for webhook configuration... ($i/30)"
+            sleep 2
+          done
+
       - name: Setup Free API and ARK test resources
         env:
-          HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          sleep 10
-          kubectl create secret generic huggingface-api-key \
-            --from-literal=api-key="$HF_API_TOKEN"
-          kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml
+          # Create Groq API secret (free, no credit card required)
+          # Get your key at: https://console.groq.com/keys
+          kubectl create secret generic groq-api-key \
+            --from-literal=api-key="$GROQ_API_KEY"
+
+          # Apply resources with retry (webhook might need more warmup time)
+          for i in {1..3}; do
+            echo "Attempting to create ARK resources (attempt $i/3)..."
+            if kubectl apply -f e2e/fixtures/ark-free-api-resources.yaml; then
+              echo "✓ ARK resources created successfully"
+              break
+            else
+              if [ $i -lt 3 ]; then
+                echo "Failed, retrying in 10 seconds..."
+                sleep 10
+              else
+                echo "Failed after 3 attempts"
+                exit 1
+              fi
+            fi
+          done
+
           kubectl get agents,models,teams,memories,evaluators -n default
-          echo "✓ Free API and ARK resources ready (HuggingFace)"
+          echo "✓ Free API and ARK resources ready (Groq - llama-3.1-8b-instant)"
 
       - name: Build Docker image
         run: |
