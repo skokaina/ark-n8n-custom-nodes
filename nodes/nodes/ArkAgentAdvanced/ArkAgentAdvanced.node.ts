@@ -14,6 +14,7 @@ import {
   extractModelRef,
   extractToolsConfig,
   extractMemoryRef,
+  extractResponseContent,
 } from "../../utils/arkHelpers";
 
 export class ArkAgentAdvanced implements INodeType {
@@ -35,27 +36,18 @@ export class ArkAgentAdvanced implements INodeType {
         type: "ai_languageModel",
         required: false,
         maxConnections: 1,
-        filter: {
-          nodes: ["CUSTOM.arkModelSelector"],
-        },
       },
       {
         displayName: "Memory",
         type: "ai_memory",
         required: false,
         maxConnections: 1,
-        filter: {
-          nodes: ["CUSTOM.arkMemory"],
-        },
       },
       {
         displayName: "Tools",
         type: "ai_tool",
         required: false,
         maxConnections: 10,
-        filter: {
-          nodes: ["CUSTOM.arkTool"],
-        },
       },
     ],
     outputs: ["main"],
@@ -292,7 +284,7 @@ export class ArkAgentAdvanced implements INodeType {
           queryName: queryName,
           status: response.status?.phase || "unknown",
           input: input,
-          response: response.status?.responses?.[0]?.content || "",
+          response: extractResponseContent(response),
           duration: response.status?.duration || null,
           sessionId: sessionId,
           memoryRef: memoryRef?.name || null,
@@ -304,6 +296,13 @@ export class ArkAgentAdvanced implements INodeType {
           pairedItem: { item: i },
         });
       } catch (error: any) {
+        if (this.continueOnFail()) {
+          returnData.push({
+            json: { error: error.message },
+            pairedItem: { item: i },
+          });
+          continue;
+        }
         throw new Error(`Query execution failed: ${error.message}`);
       }
     }

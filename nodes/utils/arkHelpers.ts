@@ -242,7 +242,25 @@ export async function postQuery(
 }
 
 /**
- * Poll query status until completion or timeout
+ * Extract the response content from a query result.
+ * ARK API returns a single response per query (not an array).
+ * Supports both legacy (responses array) and current (response string) formats.
+ */
+export function extractResponseContent(queryResult: any): string {
+  // Current ARK API: single response field
+  if (typeof queryResult.status?.response === "string") {
+    return queryResult.status.response;
+  }
+  // Legacy ARK API: responses array with first element
+  if (Array.isArray(queryResult.status?.responses)) {
+    return queryResult.status.responses[0]?.content || "";
+  }
+  return "";
+}
+
+/**
+ * Poll query status until completion or timeout using exponential backoff.
+ * Starts at 1s, doubles each attempt, capped at 10s per interval.
  */
 export async function pollQueryStatus(
   context: IExecuteFunctions,
@@ -271,8 +289,9 @@ export async function pollQueryStatus(
   }
 
   while (attempts < maxAttempts) {
-    // Wait 5 seconds between attempts
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+    const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     const queryStatus = await context.helpers.request(requestOptions);
 
@@ -281,7 +300,7 @@ export async function pollQueryStatus(
       break;
     } else if (queryStatus.status?.phase === "error") {
       throw new Error(
-        `Query failed: ${queryStatus.status?.responses?.[0]?.content || "Unknown error"}`,
+        `Query failed: ${extractResponseContent(queryStatus) || "Unknown error"}`,
       );
     }
 
@@ -289,7 +308,7 @@ export async function pollQueryStatus(
   }
 
   if (!response) {
-    throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
+    throw new Error(`Query timed out after ${maxAttempts} polling attempts`);
   }
 
   return response;

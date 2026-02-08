@@ -7,6 +7,7 @@ import {
   extractModelRef,
   extractToolsConfig,
   extractMemoryRef,
+  extractResponseContent,
 } from "../arkHelpers";
 import { createMockExecuteFunctions } from "../../test-helpers/mocks";
 
@@ -50,6 +51,37 @@ describe("arkHelpers", () => {
 
     it("should return undefined for bearer scheme without bearerToken", () => {
       expect(getAuthHeader({ authScheme: "bearer" })).toBeUndefined();
+    });
+  });
+
+  describe("extractResponseContent", () => {
+    it("should extract from current ARK API single response field", () => {
+      const result = extractResponseContent({
+        status: { response: "Hello from agent" },
+      });
+      expect(result).toBe("Hello from agent");
+    });
+
+    it("should extract from legacy responses array", () => {
+      const result = extractResponseContent({
+        status: { responses: [{ content: "Legacy response" }] },
+      });
+      expect(result).toBe("Legacy response");
+    });
+
+    it("should prefer single response field over legacy array", () => {
+      const result = extractResponseContent({
+        status: {
+          response: "Current response",
+          responses: [{ content: "Legacy response" }],
+        },
+      });
+      expect(result).toBe("Current response");
+    });
+
+    it("should return empty string if no response data", () => {
+      expect(extractResponseContent({ status: {} })).toBe("");
+      expect(extractResponseContent({})).toBe("");
     });
   });
 
@@ -577,8 +609,8 @@ describe("arkHelpers", () => {
       );
 
       // Fast-forward time to trigger polling
-      await jest.advanceTimersByTimeAsync(5000);
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(1000);
+      await jest.advanceTimersByTimeAsync(2000);
 
       const result = await pollPromise;
 
@@ -678,7 +710,7 @@ describe("arkHelpers", () => {
         10
       );
 
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(1000);
       await pollPromise;
 
       const requestCall = mockContext.helpers.request as jest.Mock;
@@ -714,7 +746,7 @@ describe("arkHelpers", () => {
         10
       );
 
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(1000);
       await pollPromise;
 
       const requestCall = mockContext.helpers.request as jest.Mock;
@@ -749,7 +781,7 @@ describe("arkHelpers", () => {
         10
       );
 
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(1000);
       await pollPromise;
 
       const requestCall = mockContext.helpers.request as jest.Mock;

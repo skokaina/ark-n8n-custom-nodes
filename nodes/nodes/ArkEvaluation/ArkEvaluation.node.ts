@@ -6,6 +6,7 @@ import {
   INodeType,
   INodeTypeDescription,
 } from "n8n-workflow";
+import { getAuthHeader } from "../../utils/arkHelpers";
 
 export class ArkEvaluation implements INodeType {
   description: INodeTypeDescription = {
@@ -388,9 +389,8 @@ export class ArkEvaluation implements INodeType {
     const returnData: INodeExecutionData[] = [];
     const credentials = await this.getCredentials("arkApi");
     const baseUrl = credentials.baseUrl as string;
-    const token = credentials.token as string;
-
     for (let i = 0; i < items.length; i++) {
+      try {
       const evaluationType = this.getNodeParameter(
         "evaluationType",
         i,
@@ -505,8 +505,9 @@ export class ArkEvaluation implements INodeType {
       const headers: any = {
         "Content-Type": "application/json",
       };
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+      const authHeader = getAuthHeader(credentials as any);
+      if (authHeader) {
+        headers["Authorization"] = authHeader;
       }
 
       const response = await this.helpers.request({
@@ -521,8 +522,13 @@ export class ArkEvaluation implements INodeType {
         const evaluationName = response.name;
         const startTime = Date.now();
         const maxWaitTime = timeout * 1000;
+        let pollAttempt = 0;
 
         while (true) {
+          // Exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+          const delay = Math.min(1000 * Math.pow(2, pollAttempt), 10000);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+
           const statusResponse = await this.helpers.request({
             method: "GET",
             url: `${baseUrl}/v1/evaluations/${evaluationName}`,
@@ -541,10 +547,17 @@ export class ArkEvaluation implements INodeType {
             throw new Error(`Evaluation timed out after ${timeout} seconds`);
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          pollAttempt++;
         }
       } else {
         returnData.push({ json: response });
+      }
+      } catch (error: any) {
+        if (this.continueOnFail()) {
+          returnData.push({ json: { error: error.message } });
+          continue;
+        }
+        throw error;
       }
     }
 

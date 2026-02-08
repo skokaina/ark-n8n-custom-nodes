@@ -2,8 +2,16 @@ import { ArkAgentAdvanced } from "../ArkAgentAdvanced.node";
 import { createMockExecuteFunctions } from "../../../test-helpers/mocks";
 import * as arkHelpers from "../../../utils/arkHelpers";
 
-// Mock the arkHelpers module
-jest.mock("../../../utils/arkHelpers");
+// Mock the arkHelpers module but keep extractResponseContent real
+jest.mock("../../../utils/arkHelpers", () => {
+  const actual = jest.requireActual("../../../utils/arkHelpers");
+  return {
+    ...Object.fromEntries(
+      Object.keys(actual).map((key) => [key, jest.fn()])
+    ),
+    extractResponseContent: actual.extractResponseContent,
+  };
+});
 
 describe("ArkAgentAdvanced Node", () => {
   let node: ArkAgentAdvanced;
@@ -34,13 +42,13 @@ describe("ArkAgentAdvanced Node", () => {
       const toolsInput = inputs.find((i: any) => i.type === "ai_tool");
 
       expect(chatModelInput).toBeDefined();
-      expect(chatModelInput?.filter?.nodes).toEqual(["CUSTOM.arkModelSelector"]);
+      expect(chatModelInput?.filter).toBeUndefined();
 
       expect(memoryInput).toBeDefined();
-      expect(memoryInput?.filter?.nodes).toEqual(["CUSTOM.arkMemory"]);
+      expect(memoryInput?.filter).toBeUndefined();
 
       expect(toolsInput).toBeDefined();
-      expect(toolsInput?.filter?.nodes).toEqual(["CUSTOM.arkTool"]);
+      expect(toolsInput?.filter).toBeUndefined();
     });
 
     it("should have configuration mode property", () => {

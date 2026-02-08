@@ -14,6 +14,22 @@ spec:
       labels:
         app: {{ .Values.app.name }}
     spec:
+      {{- if .Values.ark.supportedVersions }}
+      initContainers:
+      - name: ark-version-check
+        image: curlimages/curl:latest
+        command:
+        - sh
+        - -c
+        - |
+          echo "Checking ARK API version at {{ .Values.ark.apiUrl }}..."
+          VERSION=$(curl -sf {{ .Values.ark.apiUrl }}/v1/version 2>/dev/null | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
+          if [ -z "$VERSION" ]; then
+            echo "WARNING: Could not fetch ARK API version — skipping check"
+            exit 0
+          fi
+          echo "ARK API version: $VERSION (required: {{ .Values.ark.supportedVersions }})"
+      {{- end }}
       containers:
       - name: {{ .Values.app.name }}
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}

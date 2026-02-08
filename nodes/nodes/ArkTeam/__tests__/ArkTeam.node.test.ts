@@ -206,9 +206,9 @@ describe("ArkTeam Node", () => {
         mockFunctions as IExecuteFunctions,
       );
 
-      // Fast-forward through polling delays
-      await jest.advanceTimersByTimeAsync(5000); // First poll
-      await jest.advanceTimersByTimeAsync(5000); // Second poll
+      // Fast-forward through exponential backoff polling delays (1s, 2s)
+      await jest.advanceTimersByTimeAsync(1000); // First poll (1s)
+      await jest.advanceTimersByTimeAsync(2000); // Second poll (2s)
 
       const result = await executePromise;
 
@@ -340,7 +340,7 @@ describe("ArkTeam Node", () => {
         mockFunctions as IExecuteFunctions,
       );
 
-      await jest.advanceTimersByTimeAsync(5000);
+      await jest.advanceTimersByTimeAsync(1000); // First poll (1s backoff)
 
       const result = await executePromise;
 
