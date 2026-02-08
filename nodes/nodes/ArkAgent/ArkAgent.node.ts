@@ -203,33 +203,6 @@ export class ArkAgent implements INodeType {
         }
         throw error;
       }
-
-        if (!response) {
-          throw new Error(`Query timed out after ${maxAttempts * 5} seconds`);
-        }
-
-        const output = {
-          queryName: queryName,
-          status: response.status?.phase || "unknown",
-          input: input,
-          response: response.status?.response?.content || "",
-          duration: response.status?.duration || null,
-        };
-
-        returnData.push({ json: output });
-      } catch (error) {
-        if (this.continueOnFail()) {
-          returnData.push({
-            json: {
-              error: error.message,
-              queryName: `n8n-${this.getNodeParameter("agent", i)}-${Date.now()}`,
-            },
-            pairedItem: i,
-          });
-          continue;
-        }
-        throw error;
-      }
     }
 
     return [returnData];

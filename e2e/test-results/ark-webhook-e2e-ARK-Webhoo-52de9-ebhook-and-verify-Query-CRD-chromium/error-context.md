@@ -4,222 +4,155 @@
 - generic [ref=e1]:
   - generic [ref=e3]:
     - main [ref=e4]:
-      - generic [ref=e5]:
-        - generic [ref=e6]:
-          - generic [ref=e9]:
-            - generic [ref=e11]:
-              - generic [ref=e14]:
-                - link "Personal" [ref=e16] [cursor=pointer]:
-                  - /url: /projects/V2XWnrzcuf437yzX
-                  - generic [ref=e18]:
-                    - generic "Personal" [ref=e19]:
-                      - img [ref=e20]
-                    - generic [ref=e24]: Personal
-                - generic [ref=e25]: /
-                - generic "ARK E2E Webhook Test" [ref=e26]:
-                  - generic [ref=e28] [cursor=pointer]: ARK E2E Webhook Test
-              - generic [ref=e30]: + Add tag
-              - generic [ref=e31]:
-                - generic [ref=e33] [cursor=pointer]:
-                  - generic: 0 / 3
-                - generic [ref=e34]:
-                  - button "Published" [disabled] [ref=e37]:
-                    - generic [ref=e40]: Published
-                  - link [ref=e42] [cursor=pointer]:
-                    - /url: /workflow/Wu2dJecAKjHDhEw8/history
-                    - button [ref=e43]:
-                      - img [ref=e45]
-                  - button [ref=e52] [cursor=pointer]:
-                    - img [ref=e54]
-            - radiogroup [ref=e60]:
-              - radio "Editor" [checked] [ref=e61]:
-                - generic [ref=e62] [cursor=pointer]: Editor
-              - radio "Executions" [ref=e63]:
-                - generic [ref=e64] [cursor=pointer]: Executions
-              - radio "Evaluations" [ref=e65]:
-                - generic [ref=e66] [cursor=pointer]: Evaluations
-          - complementary [ref=e67]:
-            - generic [ref=e68]:
-              - generic [ref=e70]:
-                - menubar [ref=e71]:
-                  - menuitem "Add new item" [ref=e72]:
-                    - button "Add new item" [ref=e74] [cursor=pointer]:
-                      - img [ref=e76]
-                - button "Open command palette" [ref=e79] [cursor=pointer]:
-                  - img [ref=e81]
-                - button "Toggle sidebar" [ref=e86] [cursor=pointer]:
-                  - img [ref=e88]
-              - generic [ref=e96]:
-                - menuitem "Overview" [ref=e99] [cursor=pointer]:
-                  - img [ref=e101]
-                - menuitem "Chat" [ref=e107] [cursor=pointer]:
-                  - img [ref=e109]
-              - generic [ref=e112]:
-                - menuitem "Inspiration" [ref=e115] [cursor=pointer]:
-                  - img [ref=e117]
-                - menuitem "Insights" [ref=e121] [cursor=pointer]:
-                  - img [ref=e123]
-                - menuitem "Help" [ref=e127] [cursor=pointer]:
-                  - img [ref=e129]
-                - menuitem "Settings" [ref=e135] [cursor=pointer]:
-                  - img [ref=e137]
-          - main [ref=e141]:
-            - generic [ref=e144]:
-              - generic [ref=e146]:
-                - generic [ref=e148]:
-                  - generic:
-                    - img
-                    - img:
-                      - group "Edge from webhook-trigger to ark-agent":
-                        - img
-                    - img:
-                      - group "Edge from ark-agent to respond-webhook":
-                        - img
+      - generic [ref=e6]:
+        - radiogroup [ref=e12]:
+          - radio "Editor" [ref=e13]:
+            - generic [ref=e14] [cursor=pointer]: Editor
+          - radio "Executions" [checked] [ref=e15]:
+            - generic [ref=e16] [cursor=pointer]: Executions
+          - radio "Evaluations" [ref=e17]:
+            - generic [ref=e18] [cursor=pointer]: Evaluations
+        - complementary [ref=e19]:
+          - generic [ref=e20]:
+            - generic [ref=e22]:
+              - menubar [ref=e23]:
+                - menuitem "Add new item" [ref=e24]:
+                  - button "Add new item" [ref=e26] [cursor=pointer]:
+                    - img [ref=e28]
+              - button "Open command palette" [ref=e31] [cursor=pointer]:
+                - img [ref=e33]
+              - button "Toggle sidebar" [ref=e38] [cursor=pointer]:
+                - img [ref=e40]
+            - generic [ref=e48]:
+              - menuitem "Overview" [ref=e51] [cursor=pointer]:
+                - img [ref=e53]
+              - menuitem "Chat" [ref=e59] [cursor=pointer]:
+                - img [ref=e61]
+            - generic [ref=e64]:
+              - menuitem "Inspiration" [ref=e67] [cursor=pointer]:
+                - img [ref=e69]
+              - menuitem "Insights" [ref=e73] [cursor=pointer]:
+                - img [ref=e75]
+              - menuitem "Help" [ref=e79] [cursor=pointer]:
+                - img [ref=e81]
+              - menuitem "Settings" [ref=e87] [cursor=pointer]:
+                - img [ref=e89]
+        - main [ref=e93]:
+          - generic [ref=e95]:
+            - generic [ref=e96]:
+              - heading "Executions" [level=2] [ref=e98]
+              - generic [ref=e99]:
+                - generic [ref=e100] [cursor=pointer]:
+                  - checkbox "Auto refresh" [checked] [ref=e101]:
                     - generic:
-                      - group [ref=e149] [cursor=pointer]:
-                        - generic [ref=e150]:
-                          - generic [ref=e153]: POST
-                          - generic [ref=e156]:
-                            - button "Execute step" [ref=e157]:
-                              - img [ref=e159]
-                            - button "Deactivate" [ref=e161]:
-                              - img [ref=e163]
-                            - button "Delete" [ref=e166]:
-                              - img [ref=e168]
-                            - button [ref=e170]:
-                              - img [ref=e172]
-                          - generic [ref=e174]:
-                            - generic [ref=e177]:
-                              - img
-                            - generic:
-                              - generic: Webhook
+                      - img
+                  - generic [ref=e102]: Auto refresh
+                - button [ref=e103] [cursor=pointer]:
+                  - img [ref=e105]
+              - link "Feb 8, 22:53:38 Succeeded in 5.066s" [ref=e109] [cursor=pointer]:
+                - /url: /workflow/IFj6nUKnqNWuvxxV/executions/12
+                - generic [ref=e110]:
+                  - generic [ref=e111]: Feb 8, 22:53:38
+                  - generic [ref=e112]:
+                    - generic [ref=e113]: Succeeded
+                    - generic [ref=e114]: in 5.066s
+              - generic [ref=e117] [cursor=pointer]:
+                - generic [ref=e118]: Which executions is this workflow saving?
+                - img [ref=e119]
+            - generic [ref=e122]:
+              - generic:
+                - generic [ref=e123]:
+                  - generic [ref=e125]: Feb 8, 22:53:38
+                  - generic [ref=e126]:
+                    - generic [ref=e127]: Succeeded
+                    - generic [ref=e128]: in 5.066s | ID#12
+                - generic [ref=e129]:
+                  - link "Copy to editor" [ref=e130] [cursor=pointer]:
+                    - /url: /workflow/IFj6nUKnqNWuvxxV/debug/12
+                    - button "Copy to editor" [ref=e131]:
+                      - generic [ref=e132]: Copy to editor
+                  - button "Delete this execution" [ref=e133] [cursor=pointer]:
+                    - img [ref=e135]
+              - iframe [active] [ref=e138]:
+                - generic [ref=f1e3]:
+                  - main [ref=f1e4]:
+                    - main [ref=f1e7]:
+                      - generic [ref=f1e12]:
+                        - generic [ref=f1e14]:
                           - generic:
+                            - img
+                            - img:
+                              - group "Edge from webhook-trigger to ark-agent":
+                                - img
+                            - img:
+                              - group "Edge from ark-agent to respond-webhook":
+                                - img
                             - generic:
                               - generic:
-                                - img
-                              - button "Execute workflow":
-                                - generic:
-                                  - img
-                                - generic: Execute workflow
-                      - group [ref=e178] [cursor=pointer]:
-                        - generic [ref=e179]:
-                          - generic [ref=e188]:
-                            - button "Execute step" [ref=e189]:
-                              - img [ref=e191]
-                            - button "Deactivate" [ref=e193]:
-                              - img [ref=e195]
-                            - button "Delete" [ref=e198]:
-                              - img [ref=e200]
-                            - button [ref=e202]:
-                              - img [ref=e204]
-                          - generic [ref=e206]:
-                            - generic [ref=e209]:
-                              - img
+                                - generic: 1 item
+                              - generic:
+                                - generic: 1 item
                             - generic:
-                              - generic: ARK Agent
-                      - group [ref=e210] [cursor=pointer]:
-                        - generic [ref=e211]:
-                          - img [ref=e216]
-                          - generic [ref=e224]:
-                            - button "Execute step" [ref=e225]:
-                              - img [ref=e227]
-                            - button "Deactivate" [ref=e229]:
-                              - img [ref=e231]
-                            - button "Delete" [ref=e234]:
-                              - img [ref=e236]
-                            - button [ref=e238]:
-                              - img [ref=e240]
-                          - generic [ref=e242]:
-                            - generic [ref=e245]:
-                              - img
-                            - generic:
-                              - generic: Respond to Webhook
-                - img [ref=e246]
-                - img [ref=e247]
-                - generic [ref=e249]:
-                  - button [ref=e251] [cursor=pointer]:
-                    - img [ref=e253]
-                  - button [ref=e256] [cursor=pointer]:
-                    - img [ref=e258]
-                  - button [ref=e263] [cursor=pointer]:
-                    - img [ref=e265]
-                  - button [ref=e270] [cursor=pointer]:
-                    - img [ref=e271]
-              - button "Execute workflow" [ref=e276] [cursor=pointer]:
-                - img [ref=e278]
-                - generic [ref=e280]: Execute workflow
-              - generic [ref=e281]:
-                - button [ref=e283] [cursor=pointer]:
-                  - img [ref=e285]
-                - button [ref=e288] [cursor=pointer]:
-                  - img [ref=e290]
-                - button [ref=e295] [cursor=pointer]:
-                  - img [ref=e297]
-                - button [ref=e302] [cursor=pointer]:
-                  - img [ref=e304]
-              - generic:
-                - complementary
-            - generic [ref=e316] [cursor=pointer]:
-              - generic [ref=e317]: Logs
-              - generic [ref=e319]:
-                - button "Pop out panel" [ref=e321]:
-                  - img [ref=e323]
-                - button "Open panel" [ref=e326]:
-                  - img [ref=e328]
-        - dialog [ref=e331]:
-          - generic [ref=e332]:
-            - generic [ref=e333]:
-              - heading "Workflow published" [level=1] [ref=e336]
-              - button "Close this dialog" [ref=e337] [cursor=pointer]:
-                - img [ref=e339]
-            - generic [ref=e341]:
-              - generic [ref=e342]:
-                - generic [ref=e344]: You can now make calls to your production webhook URL.
-                - generic [ref=e346]:
-                  - generic [ref=e347]: These executions will not show up immediately in the editor,
-                  - text: but you can see them in the execution list if you choose to save executions.
-              - generic [ref=e349]:
-                - generic [ref=e350] [cursor=pointer]:
-                  - checkbox "Don't show again" [ref=e351]
-                  - generic [ref=e352]: Don't show again
-                - button "Got it" [ref=e353] [cursor=pointer]:
-                  - generic [ref=e354]: Got it
+                              - group [ref=f1e15] [cursor=pointer]:
+                                - generic [ref=f1e16]:
+                                  - generic:
+                                    - generic:
+                                      - generic: POST
+                                  - button [ref=f1e18]:
+                                    - img [ref=f1e20]
+                                  - generic [ref=f1e22]:
+                                    - generic [ref=f1e25]:
+                                      - img
+                                    - generic:
+                                      - generic: Webhook
+                                    - img [ref=f1e27]
+                                  - generic:
+                                    - generic:
+                                      - generic:
+                                        - img
+                              - group [ref=f1e29] [cursor=pointer]:
+                                - generic [ref=f1e30]:
+                                  - button [ref=f1e32]:
+                                    - img [ref=f1e34]
+                                  - generic [ref=f1e36]:
+                                    - generic [ref=f1e39]:
+                                      - img
+                                    - generic:
+                                      - generic: ARK Agent
+                                    - img [ref=f1e41]
+                              - group [ref=f1e43] [cursor=pointer]:
+                                - generic [ref=f1e44]:
+                                  - generic:
+                                    - generic:
+                                      - generic: 1 item
+                                  - button [ref=f1e46]:
+                                    - img [ref=f1e48]
+                                  - generic [ref=f1e50]:
+                                    - generic [ref=f1e53]:
+                                      - img
+                                    - generic:
+                                      - generic: Respond to Webhook
+                                    - img [ref=f1e55]
+                        - img [ref=f1e57]
+                        - img [ref=f1e58]
+                        - generic [ref=f1e60]:
+                          - button [ref=f1e62] [cursor=pointer]:
+                            - img [ref=f1e64]
+                          - button [ref=f1e67] [cursor=pointer]:
+                            - img [ref=f1e69]
+                          - button [ref=f1e74] [cursor=pointer]:
+                            - img [ref=f1e76]
+                      - generic [ref=f1e89] [cursor=pointer]:
+                        - generic [ref=f1e90]: Logs
+                        - button "Open panel" [ref=f1e94]:
+                          - img [ref=f1e96]
+                  - complementary
     - complementary
-  - dialog "0 / 3" [ref=e359]:
-    - generic [ref=e363]:
-      - heading "Production Checklist" [level=4] [ref=e364]
-      - generic [ref=e365]:
-        - img [ref=e367]
-        - generic [ref=e369]:
-          - generic [ref=e371]: Set up error notifications
-          - generic [ref=e373]:
-            - text: Customize exactly how you’re notified by setting up an error workflow
-            - link "More info" [ref=e374] [cursor=pointer]:
-              - /url: https://docs.n8n.io/flow-logic/error-handling/#create-and-set-an-error-workflow
-              - generic [ref=e376]: More info
-        - generic "Ignore" [ref=e377] [cursor=pointer]:
-          - img [ref=e380]
-      - generic [ref=e382]:
-        - img [ref=e384]
-        - generic [ref=e386]:
-          - generic [ref=e388]: Track time saved
-          - generic [ref=e390]:
-            - text: Configure the time saved on each run to track the manual work it saves.
-            - link "More info" [ref=e391] [cursor=pointer]:
-              - /url: https://docs.n8n.io/insights/#setting-the-time-saved-by-a-workflow
-              - generic [ref=e393]: More info
-        - generic "Ignore" [ref=e394] [cursor=pointer]:
-          - img [ref=e397]
-      - generic [ref=e399]:
-        - img [ref=e401]
-        - generic [ref=e403]:
-          - generic [ref=e405]: Enable MCP access
-          - generic [ref=e407]:
-            - text: Enable instance-level MCP access to allow MCP clients to access workflows.
-            - link "More info" [ref=e408] [cursor=pointer]:
-              - /url: https://docs.n8n.io/advanced-ai/accessing-n8n-mcp-server
-              - generic [ref=e410]: More info
-        - generic "Ignore" [ref=e411] [cursor=pointer]:
-          - img [ref=e414]
-      - generic [ref=e419] [cursor=pointer]: Ignore for all workflows
+  - generic [ref=e143]:
+    - generic [ref=e144]:
+      - generic [ref=e145]: Get inspired and learn with use cases
+      - button "Dismiss tooltip" [ref=e146] [cursor=pointer]:
+        - img [ref=e147]
+    - img [ref=e150]
+    - tooltip [ref=e152]: Get inspired and learn with use cases
 ```
