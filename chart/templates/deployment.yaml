@@ -22,13 +22,46 @@ spec:
         - sh
         - -c
         - |
+          set -e
           echo "Checking ARK API version at {{ .Values.ark.apiUrl }}..."
-          VERSION=$(curl -sf {{ .Values.ark.apiUrl }}/v1/version 2>/dev/null | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
+          VERSION=$(curl -sf "{{ .Values.ark.apiUrl }}/v1/version" 2>/dev/null | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
           if [ -z "$VERSION" ]; then
-            echo "WARNING: Could not fetch ARK API version — skipping check"
-            exit 0
+            echo "ERROR: Could not fetch ARK API version from {{ .Values.ark.apiUrl }}/v1/version"
+            echo "Please check that ARK API is running and accessible"
+            exit 1
           fi
-          echo "ARK API version: $VERSION (required: {{ .Values.ark.supportedVersions }})"
+          echo "ARK API version: $VERSION"
+          echo "Required version: {{ .Values.ark.supportedVersions }}"
+
+          # Parse version requirements (supports: >=X.Y.Z <A.B.C format)
+          REQUIRED="{{ .Values.ark.supportedVersions }}"
+
+          # Extract min and max versions from range
+          MIN_VER=$(echo "$REQUIRED" | sed -n 's/.*>=\([0-9.]*\).*/\1/p')
+          MAX_VER=$(echo "$REQUIRED" | sed -n 's/.*<\([0-9.]*\).*/\1/p')
+
+          # Compare versions using sort -V (version sort)
+          check_version() {
+            [ "$1" = "$(echo -e "$1\n$2" | sort -V | head -n1)" ]
+          }
+
+          # Check minimum version if specified
+          if [ -n "$MIN_VER" ]; then
+            if ! check_version "$MIN_VER" "$VERSION"; then
+              echo "ERROR: ARK API version $VERSION is below minimum required version $MIN_VER"
+              exit 1
+            fi
+          fi
+
+          # Check maximum version if specified
+          if [ -n "$MAX_VER" ]; then
+            if ! check_version "$VERSION" "$MAX_VER"; then
+              echo "ERROR: ARK API version $VERSION is above maximum supported version $MAX_VER"
+              exit 1
+            fi
+          fi
+
+          echo "✓ ARK API version $VERSION is compatible"
       {{- end }}
       containers:
       - name: {{ .Values.app.name }}
