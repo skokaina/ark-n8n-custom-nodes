@@ -54,14 +54,12 @@ Validate ARK controller version compatibility
 {{- define "ark-n8n.validateArkVersion" -}}
 {{- if .Values.ark.supportedVersions }}
 {{- $arkController := lookup "apps/v1" "Deployment" "ark-system" "ark-controller" }}
-{{- if not $arkController }}
+{{- if not $arkController.metadata }}
 {{- fail "ARK controller not found in ark-system namespace. Please install ARK first: ark install" }}
 {{- end }}
 {{- $image := index $arkController.spec.template.spec.containers 0 "image" }}
 {{- $version := regexFind ":[^:]+$" $image | trimPrefix ":" }}
-{{- if or (not $version) (eq $version "latest") }}
-{{- printf "WARNING: ARK controller version could not be determined from image: %s. Skipping version check." $image | print }}
-{{- else }}
+{{- if and $version (ne $version "latest") }}
 {{- $required := .Values.ark.supportedVersions }}
 {{- $minVer := regexFind ">=([0-9.]+)" $required | trimPrefix ">=" }}
 {{- $maxVer := regexFind "<([0-9.]+)" $required | trimPrefix "<" }}
@@ -71,7 +69,6 @@ Validate ARK controller version compatibility
 {{- if and $maxVer (semverCompare (printf ">=%s" $maxVer) $version) }}
 {{- fail (printf "ARK controller version %s is above maximum supported version %s" $version $maxVer) }}
 {{- end }}
-{{- printf "✓ ARK controller version %s is compatible (required: %s)" $version $required | print }}
 {{- end }}
 {{- end }}
 {{- end }}
