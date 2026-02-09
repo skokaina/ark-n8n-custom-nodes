@@ -285,7 +285,8 @@ data:
 ### Port forward issues
 
 - Kill existing port forwards: `pkill -f "port-forward"`
-- Check port availability: `lsof -i :5678`
+- Check port availability: `lsof -i :5678` or `lsof -i :8080`
+- **Important**: When using auto-login proxy, ensure port-forward matches N8N_HOST configuration (default: 8080:80)
 
 ### Mock API not responding
 
