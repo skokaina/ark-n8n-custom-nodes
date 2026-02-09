@@ -219,7 +219,7 @@ test.describe('ARK Webhook E2E Test', () => {
       data: {
         baseUrl: ARK_API_URL,
         namespace: 'default',
-        apiKey: '' // No API key needed for internal cluster access
+        authScheme: 'none' // No authentication for in-cluster access
       }
     };
 
@@ -395,14 +395,11 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log('🔟 Checking execution in n8n UI...');
     await page.goto(`${N8N_URL}/workflow/${workflowId}/executions`);
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000); // Wait for executions to load
 
-    // Check for successful execution
-    const executionItem = page.locator('[data-test-id="execution-list-item"]').first();
-    await expect(executionItem).toBeVisible({ timeout: 10000 });
-
-    // Check execution status is success
-    const successBadge = executionItem.locator('text=/success|completed/i');
-    await expect(successBadge).toBeVisible();
+    // Check for successful execution by looking for "Succeeded" text
+    const successIndicator = page.locator('text=/Succeeded/i').first();
+    await expect(successIndicator).toBeVisible({ timeout: 10000 });
 
     console.log('✓ Execution visible in n8n UI\n');
 
