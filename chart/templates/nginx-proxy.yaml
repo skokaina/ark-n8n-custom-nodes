@@ -192,6 +192,7 @@ data:
               const settings = await settingsResponse.json();
 
               // If owner is not set up yet, create the owner account
+              // Note: Creating the owner automatically logs you in
               if (settings.isInstanceOwnerSetUp === false) {
                 document.getElementById('status').textContent = 'Setting up demo account...';
 
@@ -211,37 +212,42 @@ data:
                 });
 
                 if (setupResponse.ok) {
+                  // Owner creation automatically logs you in
                   document.getElementById('status').textContent = 'Account created! Redirecting...';
                   setTimeout(() => {
                     window.location.href = '/workflows';
-                  }, 500);
+                  }, 1000);
                   return;
+                } else {
+                  console.error('Owner setup failed:', await setupResponse.text());
                 }
               }
-            }
 
-            // Try normal login
-            document.getElementById('status').textContent = 'Logging in...';
+              // Owner already exists, try normal login
+              document.getElementById('status').textContent = 'Logging in...';
 
-            const loginResponse = await fetch('/rest/login', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                email: '{{ .Values.demo.email }}',
-                password: '{{ .Values.demo.password }}'
-              }),
-              credentials: 'include'
-            });
+              const loginResponse = await fetch('/rest/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  email: '{{ .Values.demo.email }}',
+                  password: '{{ .Values.demo.password }}'
+                }),
+                credentials: 'include'
+              });
 
-            if (loginResponse.ok) {
-              document.getElementById('status').textContent = 'Success! Redirecting...';
-              setTimeout(() => {
-                window.location.href = '/workflows';
-              }, 500);
+              if (loginResponse.ok) {
+                document.getElementById('status').textContent = 'Success! Redirecting...';
+                setTimeout(() => {
+                  window.location.href = '/workflows';
+                }, 500);
+              } else {
+                throw new Error(`Login failed: ${loginResponse.status}`);
+              }
             } else {
-              throw new Error(`Login failed: ${loginResponse.status}`);
+              throw new Error(`Cannot access settings: ${settingsResponse.status}`);
             }
           } catch (error) {
             console.error('Auto-login failed:', error);
