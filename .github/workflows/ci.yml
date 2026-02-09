@@ -279,6 +279,18 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
+      - name: Verify backend n8n service
+        run: |
+          echo "=== n8n Service ==="
+          kubectl get svc ark-n8n
+
+          echo -e "\n=== Test n8n connectivity from nginx pod ==="
+          kubectl exec deployment/ark-n8n-nginx -- curl -I http://ark-n8n:5678 || echo "❌ Nginx cannot reach n8n service"
+
+          echo -e "\n=== Test n8n directly from cluster ==="
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -- \
+            curl -I http://ark-n8n:5678
+
       - name: Port forward nginx proxy with auto-login
         run: |
           # Verify nginx pod is actually running
@@ -292,6 +304,18 @@ jobs:
           # Test connectivity with retries
           curl --retry 15 --retry-delay 3 --retry-connrefused --retry-all-errors http://localhost:5678
           echo "✓ n8n accessible via auto-login proxy at http://localhost:5678"
+
+      - name: Debug on port-forward failure
+        if: failure()
+        run: |
+          echo "=== Nginx error logs ==="
+          kubectl logs deployment/ark-n8n-nginx | grep -i error || echo "No errors in nginx logs"
+
+          echo -e "\n=== Nginx access logs ==="
+          kubectl logs deployment/ark-n8n-nginx --tail=50
+
+          echo -e "\n=== Port-forward processes ==="
+          ps aux | grep "port-forward" || true
 
       - name: Run Playwright tests
         run: |
