@@ -76,21 +76,20 @@ test.describe('ARK Webhook E2E Test', () => {
 
     // Wait for ONE of the expected page states to appear (setup, login, or workflows)
     // This ensures we don't check before the page has rendered
-    // Use more resilient selectors that don't depend on form field attributes
     console.log('Waiting for page state to stabilize...');
     await Promise.race([
-      page.waitForSelector('text="Set up owner account"', { state: 'visible', timeout: 15000 }).catch(() => null),
-      page.waitForSelector('button:has-text("Sign in")', { state: 'visible', timeout: 15000 }).catch(() => null),
-      page.waitForSelector('text=/workflows/i', { state: 'visible', timeout: 15000 }).catch(() => null)
+      page.getByText('Set up owner account').waitFor({ state: 'visible', timeout: 15000 }).catch(() => null),
+      page.getByRole('button', { name: /sign in/i }).waitFor({ state: 'visible', timeout: 15000 }).catch(() => null),
+      page.getByRole('link', { name: /workflows/i }).waitFor({ state: 'visible', timeout: 15000 }).catch(() => null)
     ]);
 
     // Small buffer to let all elements settle
     await page.waitForTimeout(1000);
 
     // Check multiple indicators to determine page state using resilient selectors
-    const hasSetupForm = (await page.locator('text="Set up owner account"').count()) > 0;
-    const hasLoginForm = (await page.locator('button:has-text("Sign in")').count()) > 0 && !hasSetupForm;
-    const hasWorkflowsNav = (await page.locator('text=/workflows/i').count()) > 0;
+    const hasSetupForm = (await page.getByText('Set up owner account').count()) > 0;
+    const hasLoginForm = (await page.getByRole('button', { name: /sign in/i }).count()) > 0 && !hasSetupForm;
+    const hasWorkflowsNav = (await page.getByRole('link', { name: /workflows/i }).count()) > 0;
 
     console.log(`Page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
 
