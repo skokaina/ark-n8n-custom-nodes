@@ -76,9 +76,9 @@ test.describe('ARK Webhook E2E Test', () => {
     await page.waitForTimeout(5000); // Wait longer for page to fully render
 
     // Check multiple indicators to determine page state
-    const hasSetupForm = await page.locator('input[name="firstName"]').count() > 0;
-    const hasLoginForm = await page.locator('input[name="email"]').count() > 0 && !hasSetupForm;
-    const hasWorkflowsNav = await page.locator('text=/workflows/i').count() > 0;
+    const hasSetupForm = (await page.locator('input[name="firstName"]').count()) > 0;
+    const hasLoginForm = (await page.locator('input[name="email"]').count()) > 0 && !hasSetupForm;
+    const hasWorkflowsNav = (await page.locator('text=/workflows/i').count()) > 0;
 
     console.log(`Page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
 
