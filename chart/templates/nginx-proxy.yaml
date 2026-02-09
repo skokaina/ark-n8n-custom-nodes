@@ -180,30 +180,74 @@ data:
       <script>
         // Auto-login using n8n API
         async function autoLogin() {
-          const credentials = {
-            emailOrLdapLoginId: '{{ .Values.demo.email }}',
-            password: '{{ .Values.demo.password }}'
-          };
-
           try {
-            document.getElementById('status').textContent = 'Authenticating...';
+            // First check if user management is disabled (test mode)
+            document.getElementById('status').textContent = 'Checking authentication...';
 
-            const response = await fetch('/rest/login', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(credentials),
+            const settingsResponse = await fetch('/rest/settings', {
               credentials: 'include'
             });
 
-            if (response.ok) {
-              document.getElementById('status').textContent = 'Success! Redirecting...';
-              setTimeout(() => {
-                window.location.href = '/workflows';
-              }, 500);
+            if (settingsResponse.ok) {
+              const settings = await settingsResponse.json();
+
+              // If owner is not set up yet, create the owner account
+              // Note: Creating the owner automatically logs you in
+              if (settings.isInstanceOwnerSetUp === false) {
+                document.getElementById('status').textContent = 'Setting up demo account...';
+
+                const setupResponse = await fetch('/rest/owner', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    email: '{{ .Values.demo.email }}',
+                    password: '{{ .Values.demo.password }}',
+                    firstName: 'Demo',
+                    lastName: 'User',
+                    agreedToLicense: true
+                  }),
+                  credentials: 'include'
+                });
+
+                if (setupResponse.ok) {
+                  // Owner creation automatically logs you in
+                  document.getElementById('status').textContent = 'Account created! Redirecting...';
+                  setTimeout(() => {
+                    window.location.href = '/workflows';
+                  }, 1000);
+                  return;
+                } else {
+                  console.error('Owner setup failed:', await setupResponse.text());
+                }
+              }
+
+              // Owner already exists, try normal login
+              document.getElementById('status').textContent = 'Logging in...';
+
+              const loginResponse = await fetch('/rest/login', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  email: '{{ .Values.demo.email }}',
+                  password: '{{ .Values.demo.password }}'
+                }),
+                credentials: 'include'
+              });
+
+              if (loginResponse.ok) {
+                document.getElementById('status').textContent = 'Success! Redirecting...';
+                setTimeout(() => {
+                  window.location.href = '/workflows';
+                }, 500);
+              } else {
+                throw new Error(`Login failed: ${loginResponse.status}`);
+              }
             } else {
-              throw new Error('Login failed');
+              throw new Error(`Cannot access settings: ${settingsResponse.status}`);
             }
           } catch (error) {
             console.error('Auto-login failed:', error);
