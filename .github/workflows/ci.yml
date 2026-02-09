@@ -275,18 +275,12 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
 
-      - name: Setup n8n account
+      - name: Port forward nginx proxy with auto-login
         run: |
-          kubectl port-forward svc/ark-n8n 5678:5678 > /dev/null 2>&1 &
-          sleep 5
-          cd e2e && node scripts/setup-n8n-account.js
-          pkill -f "kubectl port-forward svc/ark-n8n" || true
-
-      - name: Port forward nginx proxy
-        run: |
-          kubectl port-forward svc/ark-n8n-proxy 5678:80 &
+          kubectl port-forward svc/ark-n8n-proxy 5678:80 > /dev/null 2>&1 &
           sleep 5
           curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:5678
+          echo "✓ n8n accessible via auto-login proxy at http://localhost:5678"
 
       - name: Run Playwright tests
         run: |
