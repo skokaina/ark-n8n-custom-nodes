@@ -69,62 +69,34 @@ test.describe('ARK Webhook E2E Test', () => {
   test('should import workflow, execute via webhook, and verify Query CRD', async ({ page, request }) => {
     console.log('📝 Test: Webhook → ARK Agent → Response → Query CRD Verification (API MODE)\n');
 
-    // Step 1: Setup owner via REST API (fast, no UI automation)
-    console.log('1️⃣ Setting up n8n owner via REST API...');
+    // Step 1: Just navigate and let auto-login work (it's actually fast in practice)
+    console.log('1️⃣ Navigating to n8n via auto-login proxy...');
+    await page.goto(N8N_URL);
 
+    // Wait for auto-login to redirect (usually happens in <5s locally)
+    // The proxy JavaScript handles owner setup automatically
     try {
-      // Check if owner exists
-      const settingsResponse = await request.get(`${N8N_URL}/rest/settings`);
-      const settingsData = await settingsResponse.json();
-      const settings = settingsData.data || settingsData;
-
-      console.log(`   Instance owner setup: ${settings.isInstanceOwnerSetUp}`);
-
-      if (!settings.isInstanceOwnerSetUp) {
-        console.log('   Creating owner account via API...');
-        const ownerResponse = await request.post(`${N8N_URL}/rest/owner`, {
-          data: {
-            email: 'admin@example.com',
-            password: 'Admin123!@#',
-            firstName: 'Admin',
-            lastName: 'User',
-            agreedToLicense: true
-          }
-        });
-
-        if (ownerResponse.ok()) {
-          console.log('   ✓ Owner created via API');
-          // Extract cookies from response to use in browser context
-          const cookies = await ownerResponse.headersArray();
-          const setCookieHeaders = cookies.filter(h => h.name.toLowerCase() === 'set-cookie');
-          console.log(`   ✓ Authenticated (${setCookieHeaders.length} cookies set)`);
-        } else {
-          const errorText = await ownerResponse.text();
-          console.log(`   ⚠ Owner creation failed: ${ownerResponse.status()} - ${errorText}`);
-        }
-      } else {
-        console.log('   ✓ Owner already exists, logging in via API...');
-        const loginResponse = await request.post(`${N8N_URL}/rest/login`, {
-          data: {
-            email: 'admin@example.com',
-            password: 'Admin123!@#'
-          }
-        });
-
-        if (loginResponse.ok()) {
-          console.log('   ✓ Logged in via API');
-        } else {
-          console.log(`   ⚠ Login failed: ${loginResponse.status()}`);
-        }
-      }
-    } catch (error) {
-      console.log(`   ⚠ API authentication error: ${error}`);
-      console.log('   Falling back to UI authentication...');
+      await page.waitForURL(/\/(workflows|workflow|setup)/, { timeout: 30000 });
+      console.log(`   ✓ Auto-login redirected to: ${page.url()}`);
+    } catch {
+      console.log(`   ⚠ No redirect after 30s, current URL: ${page.url()}`);
     }
 
-    // Navigate to n8n (should already be authenticated via API)
-    console.log('   Navigating to n8n workflows page...');
-    await page.goto(`${N8N_URL}/workflows`);
+    // If we're on setup page, fill it out (auto-login might have failed)
+    if (page.url().includes('/setup') || (await page.getByText('Set up owner account').count()) > 0) {
+      console.log('   📝 Completing owner setup via UI...');
+      await page.fill('input[name="email"]', 'admin@example.com');
+      await page.fill('input[name="firstName"]', 'Admin');
+      await page.fill('input[name="lastName"]', 'User');
+      await page.fill('input[name="password"]', 'Admin123!@#');
+      await page.click('button:has-text("Next")');
+      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 15000 });
+      console.log('   ✓ Owner account created via UI');
+    } else if (!page.url().includes('/workflow')) {
+      // Not on workflows page, navigate there
+      await page.goto(`${N8N_URL}/workflows`);
+    }
+
     await page.waitForLoadState('networkidle');
     console.log('✓ n8n ready\n');
 
