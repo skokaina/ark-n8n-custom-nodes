@@ -95,14 +95,21 @@ test.describe('ARK Webhook E2E Test', () => {
     // Step 2: Check if API authentication is needed
     console.log('2️⃣ Checking n8n API authentication...');
 
-    // Try to access API without authentication first (works when user management is disabled)
-    const testResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`);
+    // Check if user management is disabled by querying settings
+    const settingsResponse = await page.request.get(`${N8N_URL}/rest/settings`);
+    let userManagementDisabled = false;
 
-    if (testResponse.ok()) {
+    if (settingsResponse.ok()) {
+      const settings = await settingsResponse.json();
+      userManagementDisabled = settings.userManagement?.disabled === true ||
+                              settings.isInstanceOwnerSetUp === false;
+    }
+
+    if (userManagementDisabled) {
       // User management is disabled, no API key needed
       console.log('✓ User management disabled - using direct API access (no authentication needed)\n');
       process.env.N8N_API_KEY = ''; // Empty key
-    } else if (testResponse.status() === 401 || testResponse.status() === 403) {
+    } else {
       // User management is enabled, need to create API key
       console.log('   User management enabled - creating API key...');
       await page.goto(`${N8N_URL}/settings/api`);
@@ -163,8 +170,6 @@ test.describe('ARK Webhook E2E Test', () => {
       // Close the success modal
       await page.getByRole('button', { name: /done/i }).click();
       console.log('');
-    } else {
-      throw new Error(`Unexpected API response: ${testResponse.status()}`);
     }
 
     // Step 2.5: Clean up existing workflows and credentials
