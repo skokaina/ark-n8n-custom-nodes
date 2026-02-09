@@ -271,6 +271,10 @@ jobs:
           echo "✓ nginx proxy deployment ready"
 
           kubectl get pods
+
+          echo "=== n8n environment variables ==="
+          kubectl exec deployment/ark-n8n -- env | grep -E "N8N_USER_MANAGEMENT|N8N_BASIC_AUTH|N8N_PERSONALIZATION" || echo "Auth env vars not found!"
+
           kubectl logs deployment/ark-n8n --tail=50
 
       - name: Install Playwright
