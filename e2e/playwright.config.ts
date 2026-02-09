@@ -12,7 +12,7 @@ export default defineConfig({
     process.env.CI ? ['github'] : ['list'],
   ],
   use: {
-    baseURL: 'http://localhost:5678',
+    baseURL: 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -29,7 +29,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'echo "n8n is already running in k3s"',
-    url: 'http://localhost:5678',
+    url: 'http://localhost:8080',
     reuseExistingServer: true,
     timeout: 30000,
   },

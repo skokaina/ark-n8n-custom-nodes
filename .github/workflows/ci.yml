@@ -297,13 +297,13 @@ jobs:
           kubectl get pods -l app.kubernetes.io/component=proxy
           kubectl logs deployment/ark-n8n-nginx --tail=20
 
-          # Start port forward in background
-          kubectl port-forward svc/ark-n8n-proxy 5678:80 > /dev/null 2>&1 &
+          # Start port forward in background (port 8080 matches N8N_HOST configuration)
+          kubectl port-forward svc/ark-n8n-proxy 8080:80 > /dev/null 2>&1 &
           sleep 10
 
           # Test connectivity with retries
-          curl --retry 15 --retry-delay 3 --retry-connrefused --retry-all-errors http://localhost:5678
-          echo "✓ n8n accessible via auto-login proxy at http://localhost:5678"
+          curl --retry 15 --retry-delay 3 --retry-connrefused --retry-all-errors http://localhost:8080
+          echo "✓ n8n accessible via auto-login proxy at http://localhost:8080"
 
       - name: Debug on port-forward failure
         if: failure()

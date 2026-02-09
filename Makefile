@@ -87,8 +87,8 @@ e2e-create: ## Create new E2E environment from scratch
 	@echo "═══════════════════════════════════════════════════════"
 	@echo ""
 	@echo "Access n8n with auto-login:"
-	@echo "  kubectl port-forward svc/ark-n8n-proxy 5678:80"
-	@echo "  Open: http://localhost:5678"
+	@echo "  kubectl port-forward svc/ark-n8n-proxy 8080:80"
+	@echo "  Open: http://localhost:8080"
 	@echo ""
 	@echo "Or access n8n directly (manual login):"
 	@echo "  kubectl port-forward svc/ark-n8n 5679:5678"
@@ -111,12 +111,12 @@ e2e-update: ## Update existing E2E environment (fast iteration)
 		--wait
 	@echo "✓ E2E environment updated"
 	@echo ""
-	@echo "Access with auto-login: kubectl port-forward svc/ark-n8n-proxy 5678:80"
+	@echo "Access with auto-login: kubectl port-forward svc/ark-n8n-proxy 8080:80"
 	@echo "Credentials: cat /tmp/n8n-default-creds.json"
 
 e2e: ## Run E2E tests (requires e2e-setup first)
 	@echo "Starting port-forward to auto-login proxy..."
-	kubectl port-forward svc/ark-n8n-proxy 5678:80 > /dev/null 2>&1 &
+	kubectl port-forward svc/ark-n8n-proxy 8080:80 > /dev/null 2>&1 &
 	@sleep 5
 	@echo "Running E2E tests..."
 	cd e2e && npx playwright test
@@ -125,7 +125,7 @@ e2e: ## Run E2E tests (requires e2e-setup first)
 
 e2e-ui: ## Run E2E tests with UI (requires e2e-setup first)
 	@echo "Starting port-forward to auto-login proxy..."
-	kubectl port-forward svc/ark-n8n-proxy 5678:80 > /dev/null 2>&1 &
+	kubectl port-forward svc/ark-n8n-proxy 8080:80 > /dev/null 2>&1 &
 	@sleep 5
 	@echo "Opening Playwright UI..."
 	cd e2e && npx playwright test --ui
