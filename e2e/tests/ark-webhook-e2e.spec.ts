@@ -95,21 +95,27 @@ test.describe('ARK Webhook E2E Test', () => {
     // Step 2: Check if API authentication is needed
     console.log('2️⃣ Checking n8n API authentication...');
 
-    // Check if user management is disabled by querying settings
-    const settingsResponse = await page.request.get(`${N8N_URL}/rest/settings`);
-    let userManagementDisabled = false;
+    // Test if API works without authentication (N8N_USER_MANAGEMENT_DISABLED=true)
+    const apiTestResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
+      failOnStatusCode: false
+    });
 
-    if (settingsResponse.ok()) {
-      const settings = await settingsResponse.json();
-      userManagementDisabled = settings.userManagement?.disabled === true ||
-                              settings.isInstanceOwnerSetUp === false;
+    let needsApiKey = false;
+
+    if (apiTestResponse.ok()) {
+      // API works without auth - user management is disabled
+      console.log('✓ API accessible without authentication (user management disabled)\n');
+      process.env.N8N_API_KEY = ''; // Empty key - no auth needed
+    } else if (apiTestResponse.status() === 401 || apiTestResponse.status() === 403) {
+      // API requires auth - user management is enabled
+      console.log('   API requires authentication - creating API key...');
+      needsApiKey = true;
+    } else {
+      throw new Error(`Unexpected API response: ${apiTestResponse.status()}`);
     }
 
-    if (userManagementDisabled) {
-      // User management is disabled, no API key needed
-      console.log('✓ User management disabled - using direct API access (no authentication needed)\n');
-      process.env.N8N_API_KEY = ''; // Empty key
-    } else {
+    // Only create API key if needed
+    if (needsApiKey) {
       // User management is enabled, need to create API key
       console.log('   User management enabled - creating API key...');
       await page.goto(`${N8N_URL}/settings/api`);

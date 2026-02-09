@@ -191,40 +191,57 @@ data:
             if (settingsResponse.ok) {
               const settings = await settingsResponse.json();
 
-              // If user management is disabled, go directly to workflows
-              if (settings.userManagement?.disabled === true || settings.isInstanceOwnerSetUp === false) {
-                document.getElementById('status').textContent = 'Demo mode active! Redirecting...';
-                setTimeout(() => {
-                  window.location.href = '/workflows';
-                }, 500);
-                return;
+              // If owner is not set up yet, create the owner account
+              if (settings.isInstanceOwnerSetUp === false) {
+                document.getElementById('status').textContent = 'Setting up demo account...';
+
+                const setupResponse = await fetch('/rest/owner', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    email: '{{ .Values.demo.email }}',
+                    password: '{{ .Values.demo.password }}',
+                    firstName: 'Demo',
+                    lastName: 'User',
+                    agreedToLicense: true
+                  }),
+                  credentials: 'include'
+                });
+
+                if (setupResponse.ok) {
+                  document.getElementById('status').textContent = 'Account created! Redirecting...';
+                  setTimeout(() => {
+                    window.location.href = '/workflows';
+                  }, 500);
+                  return;
+                }
               }
             }
 
-            // Otherwise, attempt normal login
-            const credentials = {
-              emailOrLdapLoginId: '{{ .Values.demo.email }}',
-              password: '{{ .Values.demo.password }}'
-            };
+            // Try normal login
+            document.getElementById('status').textContent = 'Logging in...';
 
-            document.getElementById('status').textContent = 'Authenticating...';
-
-            const response = await fetch('/rest/login', {
+            const loginResponse = await fetch('/rest/login', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify(credentials),
+              body: JSON.stringify({
+                email: '{{ .Values.demo.email }}',
+                password: '{{ .Values.demo.password }}'
+              }),
               credentials: 'include'
             });
 
-            if (response.ok) {
+            if (loginResponse.ok) {
               document.getElementById('status').textContent = 'Success! Redirecting...';
               setTimeout(() => {
                 window.location.href = '/workflows';
               }, 500);
             } else {
-              throw new Error('Login failed');
+              throw new Error(`Login failed: ${loginResponse.status}`);
             }
           } catch (error) {
             console.error('Auto-login failed:', error);
