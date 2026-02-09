@@ -75,25 +75,20 @@ test.describe('ARK Webhook E2E Test', () => {
     await page.waitForLoadState('networkidle');
 
     // Wait for ONE of the expected page states to appear (setup, login, or workflows)
-    // This ensures we don't check before the page has rendered
-    console.log('Waiting for page state to stabilize...');
+    // Auto-login can take up to 90 seconds in CI due to slow JavaScript execution
+    console.log('Waiting for auto-login to complete (up to 90s)...');
     console.log(`Current URL: ${page.url()}`);
 
-    // Take screenshot to see what's actually on the page
-    await page.screenshot({ path: '/tmp/page-state-before-wait.png' });
-
     await Promise.race([
-      page.getByText('Set up owner account').waitFor({ state: 'visible', timeout: 15000 }).catch(() => null),
-      page.getByRole('button', { name: /sign in/i }).waitFor({ state: 'visible', timeout: 15000 }).catch(() => null),
-      page.getByRole('link', { name: /workflows/i }).waitFor({ state: 'visible', timeout: 15000 }).catch(() => null)
+      page.getByText('Set up owner account').waitFor({ state: 'visible', timeout: 90000 }).catch(() => null),
+      page.getByRole('button', { name: /sign in/i }).waitFor({ state: 'visible', timeout: 90000 }).catch(() => null),
+      page.getByRole('link', { name: /workflows/i }).waitFor({ state: 'visible', timeout: 90000 }).catch(() => null)
     ]);
 
     // Small buffer to let all elements settle
     await page.waitForTimeout(1000);
 
-    // Take screenshot after wait
-    await page.screenshot({ path: '/tmp/page-state-after-wait.png' });
-    console.log(`URL after wait: ${page.url()}`);
+    console.log(`URL after auto-login: ${page.url()}`);
 
     // Check multiple indicators to determine page state using resilient selectors
     const hasSetupForm = (await page.getByText('Set up owner account').count()) > 0;
@@ -101,10 +96,6 @@ test.describe('ARK Webhook E2E Test', () => {
     const hasWorkflowsNav = (await page.getByRole('link', { name: /workflows/i }).count()) > 0;
 
     console.log(`Page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
-
-    // Debug: log page content
-    const bodyText = await page.locator('body').textContent();
-    console.log(`Page contains "Set up owner": ${bodyText?.includes('Set up owner') || false}`);
 
     if (hasSetupForm) {
       console.log('📝 Completing owner setup...');
