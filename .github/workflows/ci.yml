@@ -269,6 +269,12 @@ jobs:
           kubectl get pods
           kubectl logs deployment/ark-n8n --tail=50
 
+      - name: Install Playwright
+        run: |
+          cd e2e
+          npm ci
+          npx playwright install --with-deps chromium
+
       - name: Setup n8n account
         run: |
           kubectl port-forward svc/ark-n8n 5678:5678 > /dev/null 2>&1 &
@@ -281,12 +287,6 @@ jobs:
           kubectl port-forward svc/ark-n8n-proxy 5678:80 &
           sleep 5
           curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:5678
-
-      - name: Install Playwright
-        run: |
-          cd e2e
-          npm ci
-          npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
         run: |
