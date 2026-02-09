@@ -69,28 +69,40 @@ test.describe('ARK Webhook E2E Test', () => {
   test('should import workflow, execute via webhook, and verify Query CRD', async ({ page, request }) => {
     console.log('📝 Test: Webhook → ARK Agent → Response → Query CRD Verification\n');
 
-    // Step 1: Navigate to n8n and login if needed
+    // Step 1: Navigate to n8n and wait for auto-login
     console.log('1️⃣ Navigating to n8n...');
     await page.goto(N8N_URL);
     await page.waitForLoadState('networkidle');
 
-    // Wait for either workflow page or login page (auto-login might be slow)
-    await page.waitForTimeout(2000);
+    // Wait for auto-login to complete (it should redirect to /workflows)
+    // The auto-login page detects if owner is set up and creates account or logs in
+    console.log('Waiting for auto-login to complete...');
+    try {
+      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 30000 });
+      console.log('✓ Auto-login successful\n');
+    } catch (e) {
+      // Auto-login failed, check what page we're on
+      const currentUrl = page.url();
+      console.log(`Auto-login timeout, current URL: ${currentUrl}`);
 
-    // Check if login form is present
-    const loginForm = await page.locator('input[name="email"]').count();
-    if (loginForm > 0) {
-      console.log('🔐 Logging in...');
-      await page.fill('input[name="email"]', 'admin@example.com');
-      await page.fill('input[name="password"]', 'Admin123!@#');
-      await page.click('button:has-text("Sign in")');
-      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
-      console.log('✓ Logged in\n');
-    } else {
-      console.log('✓ Already logged in\n');
+      // If on setup page, wait a bit more and check again
+      if (currentUrl.includes('/setup')) {
+        console.log('Still on setup page, waiting longer for auto-login...');
+        await page.waitForTimeout(10000);
+        await page.waitForURL(/\/workflows|\/workflow/, { timeout: 20000 });
+        console.log('✓ Auto-login completed\n');
+      } else if (currentUrl.includes('/signin')) {
+        // Manual login needed
+        console.log('🔐 Manual login required...');
+        await page.fill('input[name="email"]', 'admin@example.com');
+        await page.fill('input[name="password"]', 'Admin123!@#');
+        await page.click('button:has-text("Sign in")');
+        await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
+        console.log('✓ Logged in\n');
+      }
     }
 
-    console.log('✓ n8n loaded\n');
+    console.log('✓ n8n ready\n');
 
     // Step 2: Create n8n API key for REST API access
     console.log('2️⃣ Creating n8n API key...');
