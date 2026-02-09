@@ -308,10 +308,23 @@ jobs:
         run: |
           echo "=== Pods ==="
           kubectl get pods -A
-          echo "=== n8n logs ==="
-          kubectl logs deployment/ark-n8n --tail=100
+
+          echo "=== n8n init container logs ==="
+          kubectl logs -l app=ark-n8n -c ark-version-check --tail=100 || echo "Init container not found"
+
+          echo "=== n8n main container logs ==="
+          kubectl logs deployment/ark-n8n --tail=100 || echo "Main container not started yet"
+
+          echo "=== n8n pod description ==="
+          kubectl describe pod -l app=ark-n8n | tail -50
+
+          echo "=== ARK API accessibility test ==="
+          kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -- \
+            curl -v http://ark-api.default.svc.cluster.local/v1/version || echo "ARK API not reachable"
+
           echo "=== ARK Controller logs ==="
           kubectl logs deployment/ark-controller -n ark-system --tail=100
+
           echo "=== ARK Queries ==="
           kubectl get queries -n default || echo "No queries found"
 
