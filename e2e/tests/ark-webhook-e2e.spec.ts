@@ -69,37 +69,36 @@ test.describe('ARK Webhook E2E Test', () => {
   test('should import workflow, execute via webhook, and verify Query CRD', async ({ page, request }) => {
     console.log('📝 Test: Webhook → ARK Agent → Response → Query CRD Verification\n');
 
-    // Step 1: Navigate to n8n and wait for auto-login
+    // Step 1: Navigate to n8n and handle setup/login
     console.log('1️⃣ Navigating to n8n...');
     await page.goto(N8N_URL);
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000); // Wait for any redirects
 
-    // Wait for auto-login to complete (it should redirect to /workflows)
-    // The auto-login page detects if owner is set up and creates account or logs in
-    console.log('Waiting for auto-login to complete...');
-    try {
-      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 30000 });
-      console.log('✓ Auto-login successful\n');
-    } catch (e) {
-      // Auto-login failed, check what page we're on
-      const currentUrl = page.url();
-      console.log(`Auto-login timeout, current URL: ${currentUrl}`);
+    const currentUrl = page.url();
+    console.log(`Current URL: ${currentUrl}`);
 
-      // If on setup page, wait a bit more and check again
-      if (currentUrl.includes('/setup')) {
-        console.log('Still on setup page, waiting longer for auto-login...');
-        await page.waitForTimeout(10000);
-        await page.waitForURL(/\/workflows|\/workflow/, { timeout: 20000 });
-        console.log('✓ Auto-login completed\n');
-      } else if (currentUrl.includes('/signin')) {
-        // Manual login needed
-        console.log('🔐 Manual login required...');
-        await page.fill('input[name="email"]', 'admin@example.com');
-        await page.fill('input[name="password"]', 'Admin123!@#');
-        await page.click('button:has-text("Sign in")');
-        await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
-        console.log('✓ Logged in\n');
-      }
+    // Check if on setup page (owner account not created)
+    if (currentUrl.includes('/setup') || await page.locator('text=Set up owner account').count() > 0) {
+      console.log('📝 Completing owner setup...');
+      await page.fill('input[name="email"]', 'admin@example.com');
+      await page.fill('input[name="firstName"]', 'Admin');
+      await page.fill('input[name="lastName"]', 'User');
+      await page.fill('input[name="password"]', 'Admin123!@#');
+      await page.click('button:has-text("Next")');
+      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 15000 });
+      console.log('✓ Owner account created\n');
+    } else if (currentUrl.includes('/signin')) {
+      // Manual login needed
+      console.log('🔐 Logging in...');
+      await page.fill('input[name="email"]', 'admin@example.com');
+      await page.fill('input[name="password"]', 'Admin123!@#');
+      await page.click('button:has-text("Sign in")');
+      await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
+      console.log('✓ Logged in\n');
+    } else {
+      // Already logged in (auto-login worked)
+      console.log('✓ Already logged in\n');
     }
 
     console.log('✓ n8n ready\n');
