@@ -3,6 +3,10 @@
 
 app:
   env:
+    # Disable authentication for testing (same as local)
+    N8N_BASIC_AUTH_ACTIVE: "false"
+    N8N_USER_MANAGEMENT_DISABLED: "true"
+
     # Simpler hostname for testing (match proxy port for WebSocket)
     N8N_HOST: localhost:8080
     N8N_EDITOR_BASE_URL: http://localhost:8080

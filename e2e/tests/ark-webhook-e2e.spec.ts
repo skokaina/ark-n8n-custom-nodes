@@ -92,97 +92,13 @@ test.describe('ARK Webhook E2E Test', () => {
 
     console.log('✓ n8n loaded\n');
 
-    // Step 2: Create API key for REST API access
-    // Note: Even with demo mode, we need an API key for programmatic access
-    console.log('2️⃣ Creating n8n API key...');
-
-    // Wait a bit for n8n to fully initialize after owner setup
-    await page.waitForTimeout(3000);
-
-    // Navigate to API settings
-    await page.goto(`${N8N_URL}/settings/api`, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(2000);
-
-    // Check if we can skip API key creation (test mode)
-    const noAuthTest = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
-      failOnStatusCode: false
-    });
-
-    if (noAuthTest.ok()) {
-      console.log('✓ API accessible without authentication - skipping API key creation\n');
-      process.env.N8N_API_KEY = '';
-    } else {
-      // Need to create API key
-      console.log('   Creating API key...');
-      // User management is enabled, need to create API key
-      console.log('   User management enabled - creating API key...');
-      await page.goto(`${N8N_URL}/settings/api`);
-      await page.waitForLoadState('networkidle');
-
-      // Delete any existing API keys for a clean state
-      const apiKeyRows = page.locator('[data-test-id^="api-key-row"]');
-      const apiKeyCount = await apiKeyRows.count();
-      if (apiKeyCount > 0) {
-        console.log(`   Deleting ${apiKeyCount} existing API key(s)...`);
-        for (let i = 0; i < apiKeyCount; i++) {
-          const deleteButton = apiKeyRows.nth(0).locator('button[aria-label="delete"]').or(apiKeyRows.nth(0).locator('button:has-text("Delete")'));
-          if (await deleteButton.isVisible()) {
-            await deleteButton.click();
-            // Confirm deletion if modal appears
-            const confirmButton = page.getByRole('button', { name: /delete|confirm/i });
-            if (await confirmButton.isVisible({ timeout: 2000 })) {
-              await confirmButton.click();
-            }
-            await page.waitForTimeout(500);
-          }
-        }
-        console.log(`   ✓ Deleted existing API keys`);
-      }
-
-      // Create new API key
-      const createKeyButton = page.getByRole('button', { name: /create an api key/i });
-      await createKeyButton.click();
-      await page.waitForTimeout(1000);
-
-      // Fill in the Label field with unique timestamp
-      const labelInput = page.locator('input[placeholder*="Internal Project"]').or(page.locator('label:has-text("Label") + input'));
-      const uniqueLabel = `E2E Test ${Date.now()}`;
-      await labelInput.fill(uniqueLabel);
-      await page.waitForTimeout(500);
-
-      // Click Save button in the modal to generate the API key
-      const saveButton = page.getByRole('button', { name: /save/i });
-      await saveButton.click();
-
-      // Wait for "API Key Created" success modal to appear (use role="dialog" to avoid notification)
-      const successModal = page.locator('[role="dialog"]').filter({ hasText: 'API Key Created' });
-      await successModal.waitFor({ timeout: 10000 });
-
-      // Extract the API key - it's displayed as text starting with "eyJh" (JWT format)
-      const apiKeyText = await successModal.locator('text=/eyJh[a-zA-Z0-9_.-]+/').textContent();
-      const apiKey = apiKeyText?.trim() || '';
-
-      if (!apiKey || apiKey.length < 10) {
-        throw new Error(`Failed to extract API key. Got: "${apiKey}"`);
-      }
-
-      console.log(`✓ API key created: ${apiKey.substring(0, 20)}...`);
-
-      // Store for API requests
-      process.env.N8N_API_KEY = apiKey;
-
-      // Close the success modal
-      await page.getByRole('button', { name: /done/i }).click();
-      console.log('');
-    }
+    // Step 2: Skip API key creation when user management is disabled
+    console.log('2️⃣ Checking API access...');
+    console.log('✓ User management disabled - no API key needed\n');
+    process.env.N8N_API_KEY = ''; // No auth needed
 
     // Step 2.5: Clean up existing workflows and credentials
     console.log('2.5️⃣ Cleaning up existing workflows and credentials...');
-
-    // Helper to create headers with optional API key
-    const getHeaders = () => {
-      return process.env.N8N_API_KEY ? { 'X-N8N-API-KEY': process.env.N8N_API_KEY } : {};
-    };
 
     // Delete all workflows
     const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
