@@ -180,12 +180,33 @@ data:
       <script>
         // Auto-login using n8n API
         async function autoLogin() {
-          const credentials = {
-            emailOrLdapLoginId: '{{ .Values.demo.email }}',
-            password: '{{ .Values.demo.password }}'
-          };
-
           try {
+            // First check if user management is disabled (test mode)
+            document.getElementById('status').textContent = 'Checking authentication...';
+
+            const settingsResponse = await fetch('/rest/settings', {
+              credentials: 'include'
+            });
+
+            if (settingsResponse.ok) {
+              const settings = await settingsResponse.json();
+
+              // If user management is disabled, go directly to workflows
+              if (settings.userManagement?.disabled === true || settings.isInstanceOwnerSetUp === false) {
+                document.getElementById('status').textContent = 'Demo mode active! Redirecting...';
+                setTimeout(() => {
+                  window.location.href = '/workflows';
+                }, 500);
+                return;
+              }
+            }
+
+            // Otherwise, attempt normal login
+            const credentials = {
+              emailOrLdapLoginId: '{{ .Values.demo.email }}',
+              password: '{{ .Values.demo.password }}'
+            };
+
             document.getElementById('status').textContent = 'Authenticating...';
 
             const response = await fetch('/rest/login', {
