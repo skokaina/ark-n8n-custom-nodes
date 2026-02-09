@@ -95,15 +95,12 @@ test.describe('ARK Webhook E2E Test', () => {
     // Step 2: Skip API key creation when user management is disabled
     console.log('2️⃣ Checking API access...');
     console.log('✓ User management disabled - no API key needed\n');
-    process.env.N8N_API_KEY = ''; // No auth needed
 
     // Step 2.5: Clean up existing workflows and credentials
     console.log('2.5️⃣ Cleaning up existing workflows and credentials...');
 
     // Delete all workflows
-    const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
-      headers: getHeaders()
-    });
+    const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`);
 
     if (listResponse.ok()) {
       const workflows = await listResponse.json();
@@ -112,9 +109,7 @@ test.describe('ARK Webhook E2E Test', () => {
       if (workflows.data && workflows.data.length > 0) {
         for (const workflow of workflows.data) {
           try {
-            await page.request.delete(`${N8N_URL}/api/v1/workflows/${workflow.id}`, {
-              headers: getHeaders()
-            });
+            await page.request.delete(`${N8N_URL}/api/v1/workflows/${workflow.id}`);
             console.log(`   ✓ Deleted workflow "${workflow.name}" (${workflow.id})`);
           } catch (error) {
             console.log(`   ⚠ Could not delete workflow ${workflow.id}`);
@@ -124,11 +119,7 @@ test.describe('ARK Webhook E2E Test', () => {
     }
 
     // Delete all credentials
-    const credListResponse = await page.request.get(`${N8N_URL}/api/v1/credentials`, {
-      headers: {
-        'X-N8N-API-KEY': process.env.N8N_API_KEY!
-      }
-    });
+    const credListResponse = await page.request.get(`${N8N_URL}/api/v1/credentials`);
 
     if (credListResponse.ok()) {
       const credentials = await credListResponse.json();
@@ -137,9 +128,7 @@ test.describe('ARK Webhook E2E Test', () => {
       if (credentials.data && credentials.data.length > 0) {
         for (const cred of credentials.data) {
           try {
-            await page.request.delete(`${N8N_URL}/api/v1/credentials/${cred.id}`, {
-              headers: getHeaders()
-            });
+            await page.request.delete(`${N8N_URL}/api/v1/credentials/${cred.id}`);
             console.log(`   ✓ Deleted credential "${cred.name}" (${cred.id})`);
           } catch (error) {
             console.log(`   ⚠ Could not delete credential ${cred.id}`);
@@ -165,10 +154,7 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log(`   Credential data: ${JSON.stringify(credentialData, null, 2)}`);
 
     const credentialResponse = await page.request.post(`${N8N_URL}/api/v1/credentials`, {
-      data: credentialData,
-      headers: {
-        'X-N8N-API-KEY': process.env.N8N_API_KEY!
-      }
+      data: credentialData
     });
 
     if (!credentialResponse.ok()) {
@@ -202,12 +188,9 @@ test.describe('ARK Webhook E2E Test', () => {
     delete workflowData.updatedAt;
     delete workflowData.tags;
 
-    // Import workflow via REST API using API key
+    // Import workflow via REST API (no auth needed)
     const importResponse = await page.request.post(`${N8N_URL}/api/v1/workflows`, {
-      data: workflowData,
-      headers: {
-        'X-N8N-API-KEY': process.env.N8N_API_KEY!
-      }
+      data: workflowData
     });
 
     if (!importResponse.ok()) {
@@ -436,13 +419,9 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log('\n🧹 Cleanup...\n');
 
     // Clean up workflow if it was created
-    if (workflowId && process.env.N8N_API_KEY) {
+    if (workflowId) {
       try {
-        await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`, {
-          headers: {
-            'X-N8N-API-KEY': process.env.N8N_API_KEY
-          }
-        });
+        await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`);
         console.log('✓ Workflow deleted');
       } catch (error) {
         console.log('Note: Could not delete workflow');
