@@ -61,7 +61,7 @@ helm install ark-n8n ./chart \
   --set app.image.repository=ark-n8n \
   --set app.image.tag=test \
   --set app.image.pullPolicy=Never \
-  --set ark.apiUrl=http://ark-api.ark-system.svc.cluster.local \
+  --set ark.apiUrl=http://ark-api.default.svc.cluster.local \
   --set httpRoute.enabled=false
 
 # 6. Port forward

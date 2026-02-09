@@ -75,18 +75,12 @@ e2e-create: ## Create new E2E environment from scratch
 		--set app.image.repository=ark-n8n \
 		--set app.image.tag=test \
 		--set app.image.pullPolicy=Never \
-		--set ark.apiUrl=http://ark-api.ark-system.svc.cluster.local \
+		--set ark.apiUrl=http://ark-api.default.svc.cluster.local \
 		--wait
 	kubectl wait --for=condition=available --timeout=300s deployment/ark-n8n
 	@echo "Waiting for nginx proxy to be ready..."
 	kubectl wait --for=condition=available --timeout=60s deployment/ark-n8n-nginx || true
-	@echo "✓ E2E environment ready"
-	@echo ""
-	@echo "Setting up n8n account..."
-	@kubectl port-forward svc/ark-n8n 5678:5678 > /dev/null 2>&1 & \
-	sleep 5 && \
-	cd e2e && node scripts/setup-n8n-account.js && \
-	pkill -f "kubectl port-forward svc/ark-n8n" || true
+	@echo "✓ E2E environment ready with auto-login"
 	@echo ""
 	@echo "═══════════════════════════════════════════════════════"
 	@echo "  ✅ E2E Environment Ready with Auto-Login"
@@ -113,7 +107,7 @@ e2e-update: ## Update existing E2E environment (fast iteration)
 		--set app.image.repository=ark-n8n \
 		--set app.image.tag=test \
 		--set app.image.pullPolicy=Never \
-		--set ark.apiUrl=http://ark-api.ark-system.svc.cluster.local \
+		--set ark.apiUrl=http://ark-api.default.svc.cluster.local \
 		--wait
 	@echo "✓ E2E environment updated"
 	@echo ""
