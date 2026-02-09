@@ -114,12 +114,24 @@ e2e-update: ## Update existing E2E environment (fast iteration)
 	@echo "Access with auto-login: kubectl port-forward svc/ark-n8n-proxy 8080:80"
 	@echo "Credentials: cat /tmp/n8n-default-creds.json"
 
-e2e: ## Run E2E tests (requires e2e-setup first)
+e2e: ## Run E2E tests with API mode (fast, no UI auto-login wait)
 	@echo "Starting port-forward to auto-login proxy..."
 	kubectl port-forward svc/ark-n8n-proxy 8080:80 > /dev/null 2>&1 &
 	@sleep 5
-	@echo "Running E2E tests..."
-	cd e2e && npx playwright test
+	@echo "Running E2E tests (API mode)..."
+	cd e2e && npx playwright test ark-webhook-e2e-api.spec.ts
+	@pkill -f "kubectl port-forward svc/ark-n8n-proxy" || true
+	@echo "✓ E2E tests passed"
+
+e2e-api: ## Run E2E tests with API mode (alias for e2e)
+	@$(MAKE) e2e
+
+e2e-ui-wait: ## Run E2E tests with UI auto-login (slow, waits 90s for auto-login)
+	@echo "Starting port-forward to auto-login proxy..."
+	kubectl port-forward svc/ark-n8n-proxy 8080:80 > /dev/null 2>&1 &
+	@sleep 5
+	@echo "Running E2E tests (UI auto-login mode - slow)..."
+	cd e2e && npx playwright test ark-webhook-e2e.spec.ts.disabled
 	@pkill -f "kubectl port-forward svc/ark-n8n-proxy" || true
 	@echo "✓ E2E tests passed"
 

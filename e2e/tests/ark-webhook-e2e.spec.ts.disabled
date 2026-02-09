@@ -74,28 +74,55 @@ test.describe('ARK Webhook E2E Test', () => {
     await page.goto(N8N_URL);
     await page.waitForLoadState('networkidle');
 
-    // Wait for ONE of the expected page states to appear (setup, login, or workflows)
-    // Auto-login can take up to 90 seconds in CI due to slow JavaScript execution
-    console.log('Waiting for auto-login to complete (up to 90s)...');
-    console.log(`Current URL: ${page.url()}`);
+    // Poll every 5 seconds to see page state changes
+    console.log('Polling page state every 5s for 90s...');
+    const startTime = Date.now();
+    let redirected = false;
 
-    await Promise.race([
-      page.getByText('Set up owner account').waitFor({ state: 'visible', timeout: 90000 }).catch(() => null),
-      page.getByRole('button', { name: /sign in/i }).waitFor({ state: 'visible', timeout: 90000 }).catch(() => null),
-      page.getByRole('link', { name: /workflows/i }).waitFor({ state: 'visible', timeout: 90000 }).catch(() => null)
-    ]);
+    for (let i = 0; i < 18; i++) { // 18 iterations * 5s = 90s
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const url = page.url();
+      const title = await page.title();
+      const bodyText = (await page.locator('body').textContent() || '').substring(0, 200);
 
-    // Small buffer to let all elements settle
-    await page.waitForTimeout(1000);
+      console.log(`[${elapsed}s] URL: ${url}`);
+      console.log(`[${elapsed}s] Title: ${title}`);
+      console.log(`[${elapsed}s] Body preview: ${bodyText.replace(/\s+/g, ' ')}`);
 
-    console.log(`URL after auto-login: ${page.url()}`);
+      // Check if we've left the landing page
+      if (url !== 'http://localhost:8080/' && url !== N8N_URL + '/') {
+        console.log(`[${elapsed}s] ✓ Redirected from landing page!`);
+        redirected = true;
+        break;
+      }
 
-    // Check multiple indicators to determine page state using resilient selectors
+      // Check if elements appeared on current page
+      const setupCount = await page.getByText('Set up owner account').count();
+      const loginCount = await page.getByRole('button', { name: /sign in/i }).count();
+      const workflowsCount = await page.getByRole('link', { name: /workflows/i }).count();
+
+      console.log(`[${elapsed}s] Elements: setup=${setupCount}, login=${loginCount}, workflows=${workflowsCount}`);
+
+      if (setupCount > 0 || loginCount > 0 || workflowsCount > 0) {
+        console.log(`[${elapsed}s] ✓ Expected elements found!`);
+        redirected = true;
+        break;
+      }
+
+      await page.waitForTimeout(5000);
+    }
+
+    if (!redirected) {
+      console.log('❌ Auto-login did not redirect after 90s - taking screenshot');
+      await page.screenshot({ path: '/tmp/auto-login-stuck.png' });
+    }
+
+    // Check final page state
     const hasSetupForm = (await page.getByText('Set up owner account').count()) > 0;
     const hasLoginForm = (await page.getByRole('button', { name: /sign in/i }).count()) > 0 && !hasSetupForm;
     const hasWorkflowsNav = (await page.getByRole('link', { name: /workflows/i }).count()) > 0;
 
-    console.log(`Page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
+    console.log(`Final page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
 
     if (hasSetupForm) {
       console.log('📝 Completing owner setup...');
