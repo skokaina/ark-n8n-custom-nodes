@@ -78,8 +78,11 @@ test.describe('ARK Webhook E2E Test', () => {
     const currentUrl = page.url();
     console.log(`Current URL: ${currentUrl}`);
 
-    // Check if on setup page (owner account not created)
-    if (currentUrl.includes('/setup') || await page.locator('text=Set up owner account').count() > 0) {
+    // Wait for page to render and check if on setup page
+    // Use waitForSelector with timeout to properly detect the page state
+    const isSetupPage = await page.locator('text=Set up owner account').isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (isSetupPage) {
       console.log('📝 Completing owner setup...');
       await page.fill('input[name="email"]', 'admin@example.com');
       await page.fill('input[name="firstName"]', 'Admin');
