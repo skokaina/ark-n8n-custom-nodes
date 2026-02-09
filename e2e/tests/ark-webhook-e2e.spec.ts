@@ -92,15 +92,76 @@ test.describe('ARK Webhook E2E Test', () => {
 
     console.log('✓ n8n loaded\n');
 
-    // Step 2: Skip API key creation when user management is disabled
-    console.log('2️⃣ Checking API access...');
-    console.log('✓ User management disabled - no API key needed\n');
+    // Step 2: Create n8n API key for REST API access
+    console.log('2️⃣ Creating n8n API key...');
+    await page.goto(`${N8N_URL}/settings/api`);
+    await page.waitForLoadState('networkidle');
+
+    // Delete any existing API keys for a clean state
+    const apiKeyRows = page.locator('[data-test-id^="api-key-row"]');
+    const apiKeyCount = await apiKeyRows.count();
+    if (apiKeyCount > 0) {
+      console.log(`   Deleting ${apiKeyCount} existing API key(s)...`);
+      for (let i = 0; i < apiKeyCount; i++) {
+        const deleteButton = apiKeyRows.nth(0).locator('button[aria-label="delete"]').or(apiKeyRows.nth(0).locator('button:has-text("Delete")'));
+        if (await deleteButton.isVisible()) {
+          await deleteButton.click();
+          // Confirm deletion if modal appears
+          const confirmButton = page.getByRole('button', { name: /delete|confirm/i });
+          if (await confirmButton.isVisible({ timeout: 2000 })) {
+            await confirmButton.click();
+          }
+          await page.waitForTimeout(500);
+        }
+      }
+      console.log(`   ✓ Deleted existing API keys`);
+    }
+
+    // Create new API key
+    const createKeyButton = page.getByRole('button', { name: /create an api key/i });
+    await createKeyButton.click();
+    await page.waitForTimeout(1000);
+
+    // Fill in the Label field with unique timestamp
+    const labelInput = page.locator('input[placeholder*="Internal Project"]').or(page.locator('label:has-text("Label") + input'));
+    const uniqueLabel = `E2E Test ${Date.now()}`;
+    await labelInput.fill(uniqueLabel);
+    await page.waitForTimeout(500);
+
+    // Click Save button in the modal to generate the API key
+    const saveButton = page.getByRole('button', { name: /save/i });
+    await saveButton.click();
+
+    // Wait for "API Key Created" success modal to appear (use role="dialog" to avoid notification)
+    const successModal = page.locator('[role="dialog"]').filter({ hasText: 'API Key Created' });
+    await successModal.waitFor({ timeout: 10000 });
+
+    // Extract the API key - it's displayed as text starting with "eyJh" (JWT format)
+    const apiKeyText = await successModal.locator('text=/eyJh[a-zA-Z0-9_.-]+/').textContent();
+    const apiKey = apiKeyText?.trim() || '';
+
+    if (!apiKey || apiKey.length < 10) {
+      throw new Error(`Failed to extract API key. Got: "${apiKey}"`);
+    }
+
+    console.log(`✓ API key created: ${apiKey.substring(0, 20)}...`);
+
+    // Store for API requests
+    process.env.N8N_API_KEY = apiKey;
+
+    // Close the success modal
+    await page.getByRole('button', { name: /done/i }).click();
+    console.log('');
 
     // Step 2.5: Clean up existing workflows and credentials
     console.log('2.5️⃣ Cleaning up existing workflows and credentials...');
 
     // Delete all workflows
-    const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`);
+    const listResponse = await page.request.get(`${N8N_URL}/api/v1/workflows`, {
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
 
     if (listResponse.ok()) {
       const workflows = await listResponse.json();
@@ -109,7 +170,11 @@ test.describe('ARK Webhook E2E Test', () => {
       if (workflows.data && workflows.data.length > 0) {
         for (const workflow of workflows.data) {
           try {
-            await page.request.delete(`${N8N_URL}/api/v1/workflows/${workflow.id}`);
+            await page.request.delete(`${N8N_URL}/api/v1/workflows/${workflow.id}`, {
+              headers: {
+                'X-N8N-API-KEY': process.env.N8N_API_KEY!
+              }
+            });
             console.log(`   ✓ Deleted workflow "${workflow.name}" (${workflow.id})`);
           } catch (error) {
             console.log(`   ⚠ Could not delete workflow ${workflow.id}`);
@@ -119,7 +184,11 @@ test.describe('ARK Webhook E2E Test', () => {
     }
 
     // Delete all credentials
-    const credListResponse = await page.request.get(`${N8N_URL}/api/v1/credentials`);
+    const credListResponse = await page.request.get(`${N8N_URL}/api/v1/credentials`, {
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
+    });
 
     if (credListResponse.ok()) {
       const credentials = await credListResponse.json();
@@ -128,7 +197,11 @@ test.describe('ARK Webhook E2E Test', () => {
       if (credentials.data && credentials.data.length > 0) {
         for (const cred of credentials.data) {
           try {
-            await page.request.delete(`${N8N_URL}/api/v1/credentials/${cred.id}`);
+            await page.request.delete(`${N8N_URL}/api/v1/credentials/${cred.id}`, {
+              headers: {
+                'X-N8N-API-KEY': process.env.N8N_API_KEY!
+              }
+            });
             console.log(`   ✓ Deleted credential "${cred.name}" (${cred.id})`);
           } catch (error) {
             console.log(`   ⚠ Could not delete credential ${cred.id}`);
@@ -154,7 +227,10 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log(`   Credential data: ${JSON.stringify(credentialData, null, 2)}`);
 
     const credentialResponse = await page.request.post(`${N8N_URL}/api/v1/credentials`, {
-      data: credentialData
+      data: credentialData,
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
     });
 
     if (!credentialResponse.ok()) {
@@ -188,9 +264,12 @@ test.describe('ARK Webhook E2E Test', () => {
     delete workflowData.updatedAt;
     delete workflowData.tags;
 
-    // Import workflow via REST API (no auth needed)
+    // Import workflow via REST API using API key
     const importResponse = await page.request.post(`${N8N_URL}/api/v1/workflows`, {
-      data: workflowData
+      data: workflowData,
+      headers: {
+        'X-N8N-API-KEY': process.env.N8N_API_KEY!
+      }
     });
 
     if (!importResponse.ok()) {
@@ -419,9 +498,13 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log('\n🧹 Cleanup...\n');
 
     // Clean up workflow if it was created
-    if (workflowId) {
+    if (workflowId && process.env.N8N_API_KEY) {
       try {
-        await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`);
+        await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`, {
+          headers: {
+            'X-N8N-API-KEY': process.env.N8N_API_KEY
+          }
+        });
         console.log('✓ Workflow deleted');
       } catch (error) {
         console.log('Note: Could not delete workflow');
