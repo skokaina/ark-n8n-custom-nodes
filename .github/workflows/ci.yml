@@ -265,7 +265,11 @@ jobs:
       - name: Wait for n8n to be ready
         run: |
           kubectl wait --for=condition=available --timeout=300s deployment/ark-n8n
-          kubectl wait --for=condition=available --timeout=60s deployment/ark-n8n-nginx || true
+          echo "✓ n8n deployment ready"
+
+          kubectl wait --for=condition=available --timeout=120s deployment/ark-n8n-nginx
+          echo "✓ nginx proxy deployment ready"
+
           kubectl get pods
           kubectl logs deployment/ark-n8n --tail=50
 
@@ -277,9 +281,16 @@ jobs:
 
       - name: Port forward nginx proxy with auto-login
         run: |
+          # Verify nginx pod is actually running
+          kubectl get pods -l app.kubernetes.io/component=proxy
+          kubectl logs deployment/ark-n8n-nginx --tail=20
+
+          # Start port forward in background
           kubectl port-forward svc/ark-n8n-proxy 5678:80 > /dev/null 2>&1 &
-          sleep 5
-          curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:5678
+          sleep 10
+
+          # Test connectivity with retries
+          curl --retry 15 --retry-delay 3 --retry-connrefused --retry-all-errors http://localhost:5678
           echo "✓ n8n accessible via auto-login proxy at http://localhost:5678"
 
       - name: Run Playwright tests
