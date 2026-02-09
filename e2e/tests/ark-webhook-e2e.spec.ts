@@ -73,16 +73,16 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log('1️⃣ Navigating to n8n...');
     await page.goto(N8N_URL);
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(3000); // Wait for any redirects
+    await page.waitForTimeout(5000); // Wait longer for page to fully render
 
-    const currentUrl = page.url();
-    console.log(`Current URL: ${currentUrl}`);
+    // Check multiple indicators to determine page state
+    const hasSetupForm = await page.locator('input[name="firstName"]').count() > 0;
+    const hasLoginForm = await page.locator('input[name="email"]').count() > 0 && !hasSetupForm;
+    const hasWorkflowsNav = await page.locator('text=/workflows/i').count() > 0;
 
-    // Wait for page to render and check if on setup page
-    // Use waitForSelector with timeout to properly detect the page state
-    const isSetupPage = await page.locator('text=Set up owner account').isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`Page state: setup=${hasSetupForm}, login=${hasLoginForm}, workflows=${hasWorkflowsNav}`);
 
-    if (isSetupPage) {
+    if (hasSetupForm) {
       console.log('📝 Completing owner setup...');
       await page.fill('input[name="email"]', 'admin@example.com');
       await page.fill('input[name="firstName"]', 'Admin');
@@ -91,8 +91,7 @@ test.describe('ARK Webhook E2E Test', () => {
       await page.click('button:has-text("Next")');
       await page.waitForURL(/\/workflows|\/workflow/, { timeout: 15000 });
       console.log('✓ Owner account created\n');
-    } else if (currentUrl.includes('/signin')) {
-      // Manual login needed
+    } else if (hasLoginForm) {
       console.log('🔐 Logging in...');
       await page.fill('input[name="email"]', 'admin@example.com');
       await page.fill('input[name="password"]', 'Admin123!@#');
@@ -100,7 +99,6 @@ test.describe('ARK Webhook E2E Test', () => {
       await page.waitForURL(/\/workflows|\/workflow/, { timeout: 10000 });
       console.log('✓ Logged in\n');
     } else {
-      // Already logged in (auto-login worked)
       console.log('✓ Already logged in\n');
     }
 
