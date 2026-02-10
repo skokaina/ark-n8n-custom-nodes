@@ -5,6 +5,8 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  ISupplyDataFunctions,
+  SupplyData,
 } from "n8n-workflow";
 
 export class ArkWorkflowTool implements INodeType {
@@ -14,12 +16,17 @@ export class ArkWorkflowTool implements INodeType {
     icon: "fa:project-diagram",
     group: ["transform"],
     version: 1,
-    description: "Execute n8n workflows programmatically",
+    description: "Execute n8n workflows as AI agent tool",
     defaults: {
       name: "ARK Workflow Tool",
     },
     inputs: ["main"],
-    outputs: ["main"],
+    outputs: [
+      {
+        displayName: "Tool",
+        type: "ai_tool",
+      },
+    ],
     credentials: [
       {
         name: "n8nApi",
@@ -214,25 +221,38 @@ export class ArkWorkflowTool implements INodeType {
           result = { message: "Workflow execution started asynchronously" };
         }
 
+        // Output tool data in format expected by AI agents
+        const toolData = {
+          name: `workflow_${workflowId}`,
+          type: "n8n_workflow",
+          description: `Execute workflow: ${workflowId}`,
+          workflowId: workflowId,
+          // Additional metadata
+          toolName: `workflow_${workflowId}`,
+          executionId,
+          status,
+          duration: `${duration}s`,
+          result,
+        };
+
         returnData.push({
-          json: {
-            workflowId,
-            executionId,
-            status,
-            duration: `${duration}s`,
-            result,
-            success: true,
-          },
+          json: toolData,
           pairedItem: { item: i },
         });
       } catch (error: any) {
         if (this.continueOnFail()) {
+          const toolData = {
+            name: `workflow_${workflowId}`,
+            type: "n8n_workflow",
+            description: `Execute workflow: ${workflowId}`,
+            workflowId: workflowId,
+            toolName: `workflow_${workflowId}`,
+            error: error.message,
+            status: "error",
+          };
+
           returnData.push({
-            json: {
-              workflowId,
-              error: error.message,
-              success: false,
-            },
+            json: toolData,
             pairedItem: { item: i },
           });
           continue;
@@ -242,5 +262,47 @@ export class ArkWorkflowTool implements INodeType {
     }
 
     return [returnData];
+  }
+
+  async supplyData(
+    this: ISupplyDataFunctions,
+    itemIndex: number,
+  ): Promise<SupplyData> {
+    const credentials = await this.getCredentials("n8nApi");
+    const baseUrl = credentials.baseUrl as string;
+    const workflowId = this.getNodeParameter("workflowId", itemIndex) as string;
+
+    // Fetch workflow details to get name and description
+    let workflowName = workflowId;
+    let workflowDescription = `Execute workflow: ${workflowId}`;
+
+    try {
+      const workflow = await this.helpers.request({
+        method: "GET",
+        url: `${baseUrl}/api/v1/workflows/${workflowId}`,
+        headers: {
+          "X-N8N-API-KEY": credentials.apiKey as string,
+        },
+        json: true,
+      });
+
+      workflowName = workflow.name || workflowId;
+      workflowDescription =
+        workflow.meta?.description ||
+        `Execute workflow: ${workflowName}`;
+    } catch (error) {
+      console.log("Error fetching workflow details:", error);
+      // Keep default description set above
+    }
+
+    const toolData = {
+      name: `workflow_${workflowId}`,
+      type: "n8n_workflow",
+      description: workflowDescription,
+      workflowId: workflowId,
+      workflowName: workflowName,
+    };
+
+    return { response: toolData };
   }
 }

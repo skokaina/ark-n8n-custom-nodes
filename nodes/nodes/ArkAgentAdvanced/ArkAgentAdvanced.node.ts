@@ -56,7 +56,7 @@ export class ArkAgentAdvanced implements INodeType {
         required: false,
         maxConnections: 10,
         filter: {
-          nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool"],
+          nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool", "CUSTOM.arkWorkflowTool"],
         },
       },
     ],

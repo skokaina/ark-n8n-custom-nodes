@@ -40,3 +40,20 @@ demo:
   enabled: true
   email: "admin@example.com"
   password: "Admin123!@#"
+
+# Enable MCP server for E2E testing
+mcp:
+  enabled: true
+  image:
+    repository: ark-n8n-mcp
+    tag: test
+    pullPolicy: Never
+  # n8n URL for testing environment
+  n8nUrl: "http://localhost:5678"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

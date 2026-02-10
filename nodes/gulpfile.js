@@ -51,5 +51,10 @@ function copyMemoryIcon() {
     .pipe(dest('dist/nodes/ArkMemory'));
 }
 
-exports['build:icons'] = series(copyAgentIcon, copyModelIcon, copyTeamIcon, copyEvaluationIcon, copyAgentAdvancedIcon, copyToolIcon, copyModelSelectorIcon, copyMemoryIcon);
+function copyAgentToolIcon() {
+  return src('nodes/ArkAgentTool/ark-agent-tool.svg')
+    .pipe(dest('dist/nodes/ArkAgentTool'));
+}
+
+exports['build:icons'] = series(copyAgentIcon, copyModelIcon, copyTeamIcon, copyEvaluationIcon, copyAgentAdvancedIcon, copyToolIcon, copyModelSelectorIcon, copyMemoryIcon, copyAgentToolIcon);
 exports.default = exports['build:icons'];

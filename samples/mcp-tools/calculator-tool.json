@@ -1,0 +1,58 @@
+{
+  "name": "MCP Tool: Calculator",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "tool/calculator",
+        "options": {},
+        "responseMode": "lastNode",
+        "method": "POST"
+      },
+      "id": "webhook-calculator",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "calculator-tool"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safe calculator implementation\nconst expression = $input.item.json.body.expression;\n\nif (!expression || typeof expression !== 'string') {\n  throw new Error('Invalid expression: must be a non-empty string');\n}\n\n// Security: Only allow numbers and basic operators\nconst sanitized = expression.replace(/[^0-9+\\-*/().\\s]/g, '');\n\nif (sanitized !== expression) {\n  throw new Error(`Invalid expression: contains forbidden characters`);\n}\n\ntry {\n  // Use Function constructor for safe evaluation (no access to global scope)\n  const result = new Function(`return (${sanitized})`)();\n  \n  if (typeof result !== 'number' || !isFinite(result)) {\n    throw new Error('Expression did not evaluate to a valid number');\n  }\n  \n  return { \n    result: result,\n    expression: expression,\n    success: true \n  };\n} catch (error) {\n  return { \n    error: error.message,\n    expression: expression,\n    success: false \n  };\n}"
+      },
+      "id": "code-evaluate",
+      "name": "Evaluate Expression",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [690, 300]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Evaluate Expression", "type": "main", "index": 0 }]]
+    },
+    "Evaluate Expression": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "ark-n8n-mcp"
+  },
+  "tags": ["mcp", "tool", "calculator"]
+}

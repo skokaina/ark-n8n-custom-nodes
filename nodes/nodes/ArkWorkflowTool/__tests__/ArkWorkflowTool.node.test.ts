@@ -19,7 +19,12 @@ describe("ArkWorkflowTool Node", () => {
 
     it("should have correct input/output configuration", () => {
       expect(node.description.inputs).toEqual(["main"]);
-      expect(node.description.outputs).toEqual(["main"]);
+      expect(node.description.outputs).toEqual([
+        {
+          displayName: "Tool",
+          type: "ai_tool",
+        },
+      ]);
     });
 
     it("should require n8nApi credentials", () => {
@@ -182,10 +187,12 @@ describe("ArkWorkflowTool Node", () => {
       expect(result).toHaveLength(1);
       expect(result[0]).toHaveLength(1);
       expect(result[0][0].json).toMatchObject({
+        name: "workflow_workflow-1",
+        type: "n8n_workflow",
         workflowId: "workflow-1",
+        toolName: "workflow_workflow-1",
         executionId: "exec-123",
         status: "completed",
-        success: true,
       });
       expect(result[0][0].json.result).toEqual([
         { result: "success", value: 42 },
@@ -275,10 +282,12 @@ describe("ArkWorkflowTool Node", () => {
       const result = await node.execute.call(mockContext);
 
       expect(result[0][0].json).toMatchObject({
+        name: "workflow_workflow-1",
+        type: "n8n_workflow",
         workflowId: "workflow-1",
+        toolName: "workflow_workflow-1",
         executionId: "exec-123",
         status: "pending",
-        success: true,
       });
       expect(result[0][0].json.result).toEqual({
         message: "Workflow execution started asynchronously",
@@ -398,9 +407,83 @@ describe("ArkWorkflowTool Node", () => {
       const result = await node.execute.call(mockContext);
 
       expect(result[0][0].json).toMatchObject({
+        name: "workflow_workflow-1",
+        type: "n8n_workflow",
         workflowId: "workflow-1",
+        toolName: "workflow_workflow-1",
         error: "Execution failed",
-        success: false,
+        status: "error",
+      });
+    });
+  });
+
+  describe("supplyData() Method", () => {
+    it("should supply tool data with workflow information", async () => {
+      const mockContext = createMockExecuteFunctions({
+        parameters: {
+          workflowId: "workflow-123",
+        },
+        credentials: {
+          n8nApi: {
+            baseUrl: "http://n8n:5678",
+            apiKey: "test-api-key",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockResolvedValue({
+            id: "workflow-123",
+            name: "Data Processing Pipeline",
+            meta: {
+              description: "Processes and transforms data",
+            },
+          }),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toEqual({
+        name: "workflow_workflow-123",
+        type: "n8n_workflow",
+        description: "Processes and transforms data",
+        workflowId: "workflow-123",
+        workflowName: "Data Processing Pipeline",
+      });
+
+      expect(mockContext.helpers.request).toHaveBeenCalledWith({
+        method: "GET",
+        url: "http://n8n:5678/api/v1/workflows/workflow-123",
+        headers: {
+          "X-N8N-API-KEY": "test-api-key",
+        },
+        json: true,
+      });
+    });
+
+    it("should handle errors when fetching workflow details", async () => {
+      const mockContext = createMockExecuteFunctions({
+        parameters: {
+          workflowId: "workflow-456",
+        },
+        credentials: {
+          n8nApi: {
+            baseUrl: "http://n8n:5678",
+            apiKey: "test-api-key",
+          },
+        },
+        helpers: {
+          request: jest.fn().mockRejectedValue(new Error("Workflow not found")),
+        },
+      });
+
+      const result = await node.supplyData.call(mockContext, 0);
+
+      expect(result.response).toEqual({
+        name: "workflow_workflow-456",
+        type: "n8n_workflow",
+        description: "Execute workflow: workflow-456",
+        workflowId: "workflow-456",
+        workflowName: "workflow-456",
       });
     });
   });
