@@ -3,7 +3,7 @@
 
 app:
   env:
-    # Disable authentication for testing (same as local)
+    # Disable basic auth but enable user management for auto-login
     N8N_BASIC_AUTH_ACTIVE: "false"
     N8N_USER_MANAGEMENT_DISABLED: "true"
 
