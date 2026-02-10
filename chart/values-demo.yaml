@@ -37,8 +37,8 @@ ark:
 # Enable auto-login proxy for demo
 demo:
   enabled: true
-  email: "demo@example.com"
-  password: "Demo123!@#"
+  email: "admin@example.com"
+  password: "Admin123!@#"
 
 # MCP server (optional - can enable if needed)
 mcp:
