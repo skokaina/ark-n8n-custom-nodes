@@ -53,7 +53,7 @@ describe("ArkAgentAdvanced Node", () => {
 
       expect(toolsInput).toBeDefined();
       expect(toolsInput?.filter).toEqual({
-        nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool"],
+        nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool", "CUSTOM.arkWorkflowTool"],
       });
     });
 

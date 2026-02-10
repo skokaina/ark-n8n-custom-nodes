@@ -104,7 +104,7 @@ export class ArkModel implements INodeType {
     itemIndex: number,
   ): Promise<SupplyData> {
     const modelName = this.getNodeParameter("model", itemIndex) as string;
-    const credentials = await this.getCredentials("arkApi");
+    const _credentials = await this.getCredentials("arkApi");
 
     // Return model configuration data for ARK Agent Advanced to use
     return {
