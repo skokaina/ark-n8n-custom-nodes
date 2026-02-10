@@ -171,38 +171,56 @@ export async function patchAgent(
   },
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
+  const authHeader = getAuthHeader(credentials as any);
 
-  const patchBody: any = { spec: {} };
-
-  if (config.modelRef) {
-    patchBody.spec.modelRef = config.modelRef;
-  }
-
-  if (config.tools && config.tools.length > 0) {
-    patchBody.spec.tools = config.tools;
-  }
-
-  // Only proceed if we have something to patch
-  if (Object.keys(patchBody.spec).length === 0) {
+  // Only proceed if we have something to update
+  if (!config.modelRef && (!config.tools || config.tools.length === 0)) {
     return;
   }
 
-  const requestOptions: any = {
+  // Step 1: GET the current agent
+  const getOptions: any = {
+    method: "GET",
+    url: `${baseUrl}/v1/agents/${agentName}?namespace=${namespace}`,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    json: true,
+  };
+  if (authHeader) {
+    getOptions.headers.Authorization = authHeader;
+  }
+
+  const currentAgent = await context.helpers.request(getOptions);
+
+  // Step 2: Merge our changes into the agent spec
+  if (!currentAgent.spec) {
+    currentAgent.spec = {};
+  }
+
+  if (config.modelRef) {
+    currentAgent.spec.modelRef = config.modelRef;
+  }
+
+  if (config.tools && config.tools.length > 0) {
+    currentAgent.spec.tools = config.tools;
+  }
+
+  // Step 3: PUT the complete agent back
+  const putOptions: any = {
     method: "PUT",
     url: `${baseUrl}/v1/agents/${agentName}?namespace=${namespace}`,
     headers: {
       "Content-Type": "application/json",
     },
-    body: patchBody,
+    body: { spec: currentAgent.spec },
     json: true,
   };
-
-  const authHeader = getAuthHeader(credentials as any);
   if (authHeader) {
-    requestOptions.headers.Authorization = authHeader;
+    putOptions.headers.Authorization = authHeader;
   }
 
-  await context.helpers.request(requestOptions);
+  await context.helpers.request(putOptions);
 }
 
 /**
