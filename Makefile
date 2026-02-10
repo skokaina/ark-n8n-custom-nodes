@@ -424,13 +424,50 @@ quickstart-setup: ## Setup environment (cluster + deploy)
 	@echo "1️⃣  Setting up k3d cluster with ARK..."
 	@if k3d cluster list 2>/dev/null | grep -q ark-test; then \
 		echo "✓ Cluster ark-test already exists"; \
-		echo ""; \
-		echo "Rebuilding and updating deployment..."; \
-		$(MAKE) e2e-update; \
 	else \
-		echo "Creating new k3d cluster with ARK..."; \
-		$(MAKE) e2e-create; \
+		echo "Creating new k3d cluster..."; \
+		k3d cluster create ark-test --agents 2 --port "5678:5678@loadbalancer" --network k3d-ark-test --wait; \
+		echo "Installing ARK CLI..."; \
+		npm install -g @agents-at-scale/ark@0.1.51 || npm install -g @agents-at-scale/ark; \
+		echo "Installing ARK to cluster..."; \
+		ark install --yes --wait-for-ready 5m --verbose; \
+		echo "Setting up ARK test resources..."; \
+		$(MAKE) e2e-ark-free-api; \
 	fi
+	@echo ""
+	@echo "2️⃣  Building Docker images..."
+	cd nodes && npm run build && cd ..
+	docker build -t ark-n8n:test .
+	k3d image import ark-n8n:test -c ark-test
+	cd mcp-server && docker build -t ark-n8n-mcp:test .
+	k3d image import ark-n8n-mcp:test -c ark-test
+	@echo ""
+	@echo "3️⃣  Deploying ark-n8n..."
+	@if helm list -n default 2>/dev/null | grep -q ark-n8n; then \
+		echo "Upgrading existing Helm release..."; \
+		helm upgrade ark-n8n ./chart \
+			-f chart/values-demo.yaml \
+			--set app.image.repository=ark-n8n \
+			--set app.image.tag=test \
+			--set app.image.pullPolicy=Never \
+			--set mcp.image.repository=ark-n8n-mcp \
+			--set mcp.image.tag=test \
+			--set mcp.image.pullPolicy=Never \
+			--wait; \
+	else \
+		echo "Installing new Helm release..."; \
+		helm install ark-n8n ./chart \
+			-f chart/values-demo.yaml \
+			--set app.image.repository=ark-n8n \
+			--set app.image.tag=test \
+			--set app.image.pullPolicy=Never \
+			--set mcp.image.repository=ark-n8n-mcp \
+			--set mcp.image.tag=test \
+			--set mcp.image.pullPolicy=Never \
+			--wait; \
+	fi
+	@kubectl wait --for=condition=available --timeout=300s deployment/ark-n8n 2>/dev/null || true
+	@kubectl wait --for=condition=available --timeout=60s deployment/ark-n8n-nginx 2>/dev/null || true
 	@echo ""
 	@echo "✓ Environment ready"
 
