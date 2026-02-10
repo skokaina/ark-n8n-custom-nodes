@@ -188,8 +188,8 @@ export async function patchAgent(
   }
 
   const requestOptions: any = {
-    method: "PATCH",
-    url: `${baseUrl}/v1/namespaces/${namespace}/agents/${agentName}`,
+    method: "PUT",
+    url: `${baseUrl}/v1/agents/${agentName}?namespace=${namespace}`,
     headers: {
       "Content-Type": "application/json",
     },
