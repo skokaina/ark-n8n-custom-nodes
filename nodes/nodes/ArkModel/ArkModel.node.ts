@@ -19,7 +19,12 @@ export class ArkModel implements INodeType {
       name: "ARK Model",
     },
     inputs: ["main"],
-    outputs: ["main"],
+    outputs: [
+      {
+        displayName: "Model",
+        type: "ai_languageModel",
+      },
+    ],
     credentials: [
       {
         name: "arkApi",

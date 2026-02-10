@@ -36,18 +36,27 @@ export class ArkAgentAdvanced implements INodeType {
         type: "ai_languageModel",
         required: false,
         maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkModel"],
+        },
       },
       {
         displayName: "Memory",
         type: "ai_memory",
         required: false,
         maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkMemory"],
+        },
       },
       {
         displayName: "Tools",
         type: "ai_tool",
         required: false,
         maxConnections: 10,
+        filter: {
+          nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool"],
+        },
       },
     ],
     outputs: ["main"],

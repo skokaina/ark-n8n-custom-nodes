@@ -1,10 +1,19 @@
 import {
   IExecuteFunctions,
+  ILoadOptionsFunctions,
   INodeExecutionData,
+  INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
 } from "n8n-workflow";
-import { extractResponseContent } from "../../utils/arkHelpers";
+import {
+  extractResponseContent,
+  extractModelRef,
+  extractToolsConfig,
+  extractMemoryRef,
+  patchAgent,
+  getSessionId,
+} from "../../utils/arkHelpers";
 
 export class ArkAgentTool implements INodeType {
   description: INodeTypeDescription = {
@@ -17,7 +26,36 @@ export class ArkAgentTool implements INodeType {
     defaults: {
       name: "ARK Agent Tool",
     },
-    inputs: ["main"],
+    inputs: [
+      "main",
+      {
+        displayName: "Chat Model",
+        type: "ai_languageModel",
+        required: false,
+        maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkModel"],
+        },
+      },
+      {
+        displayName: "Memory",
+        type: "ai_memory",
+        required: false,
+        maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkMemory"],
+        },
+      },
+      {
+        displayName: "Tools",
+        type: "ai_tool",
+        required: false,
+        maxConnections: 10,
+        filter: {
+          nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool"],
+        },
+      },
+    ],
     outputs: ["main"],
     credentials: [
       {
@@ -27,13 +65,37 @@ export class ArkAgentTool implements INodeType {
     ],
     properties: [
       {
-        displayName: "Agent Name",
+        displayName: "Configuration Mode",
+        name: "configMode",
+        type: "options",
+        options: [
+          {
+            name: "Use Pre-configured Agent",
+            value: "static",
+            description:
+              "Agent's model and tools are already configured in ARK",
+          },
+          {
+            name: "Update Agent Configuration",
+            value: "dynamic",
+            description:
+              "Update agent's model and tools from connected sub-nodes before execution",
+          },
+        ],
+        default: "static",
+        description:
+          "Choose whether to use agent as-is or dynamically configure it",
+      },
+      {
+        displayName: "Agent",
         name: "agentName",
-        type: "string",
+        type: "options",
+        typeOptions: {
+          loadOptionsMethod: "getAgents",
+        },
         default: "",
         required: true,
-        description: "Name of ARK agent to execute",
-        placeholder: "data-analyzer-agent",
+        description: "The ARK agent to execute",
       },
       {
         displayName: "Namespace",
@@ -51,24 +113,38 @@ export class ArkAgentTool implements INodeType {
         placeholder: "30s",
       },
       {
-        displayName: "Memory",
-        name: "memory",
-        type: "string",
-        default: "",
-        description:
-          "Optional memory resource name for conversation history",
-        placeholder: "conversation-memory",
-      },
-      {
         displayName: "Session ID",
         name: "sessionId",
         type: "string",
         default: "",
         description:
-          "Optional session ID for memory persistence (auto-generated if empty)",
+          "Optional session ID for memory persistence when Memory is connected (auto-generated if empty)",
         placeholder: "user-123-session",
       },
     ],
+  };
+
+  methods = {
+    loadOptions: {
+      async getAgents(
+        this: ILoadOptionsFunctions,
+      ): Promise<INodePropertyOptions[]> {
+        const credentials = await this.getCredentials("arkApi");
+        const baseUrl = credentials.baseUrl as string;
+
+        const response = await this.helpers.request({
+          method: "GET",
+          url: `${baseUrl}/v1/agents`,
+          json: true,
+        });
+
+        return response.items.map((agent: any) => ({
+          name: agent.name,
+          value: agent.name,
+          description: agent.description || "",
+        }));
+      },
+    },
   };
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -78,11 +154,25 @@ export class ArkAgentTool implements INodeType {
     const agentName = this.getNodeParameter("agentName", 0) as string;
     const namespace = this.getNodeParameter("namespace", 0) as string;
     const timeout = this.getNodeParameter("timeout", 0) as string;
-    const memory = this.getNodeParameter("memory", 0) as string;
-    const sessionId = this.getNodeParameter("sessionId", 0) as string;
+    const configMode = this.getNodeParameter("configMode", 0) as string;
 
     const credentials = await this.getCredentials("arkApi");
     const baseUrl = credentials.baseUrl as string;
+
+    // Extract sub-node configurations
+    const modelRef = await extractModelRef(this, 0);
+    const toolsConfig = await extractToolsConfig(this, 0);
+    const memoryRef = await extractMemoryRef(this, 0);
+
+    // If dynamic mode, update agent configuration before execution
+    if (configMode === "dynamic") {
+      if (modelRef || (toolsConfig && toolsConfig.length > 0)) {
+        await patchAgent(this, baseUrl, namespace, agentName, {
+          modelRef,
+          tools: toolsConfig,
+        });
+      }
+    }
 
     for (let i = 0; i < items.length; i++) {
       try {
@@ -90,6 +180,9 @@ export class ArkAgentTool implements INodeType {
         // Try 'input' field first, fallback to entire JSON
         const input =
           (items[i].json.input as string) || JSON.stringify(items[i].json);
+
+        // Get session ID (auto-generated if not provided and memory is connected)
+        const sessionId = getSessionId(this, i);
 
         // Build query spec
         const queryName = `tool-query-${Date.now()}-${i}`;
@@ -105,17 +198,12 @@ export class ArkAgentTool implements INodeType {
           timeout: timeout,
         };
 
-        // Add optional memory configuration
-        if (memory && memory.trim() !== "") {
-          queryBody.memory = {
-            name: memory.trim(),
-            namespace: namespace,
-          };
-        }
-
-        // Add optional session ID
-        if (sessionId && sessionId.trim() !== "") {
-          queryBody.sessionId = sessionId.trim();
+        // Add memory configuration from connected Memory sub-node
+        if (memoryRef) {
+          queryBody.memory = memoryRef;
+          if (sessionId) {
+            queryBody.sessionId = sessionId;
+          }
         }
 
         // Execute query via ARK API
