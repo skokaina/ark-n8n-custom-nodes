@@ -1,0 +1,14 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: MCPServer
+metadata:
+  name: n8n-tools
+  namespace: default
+spec:
+  address:
+    valueFrom:
+      serviceRef:
+        name: ark-n8n-mcp
+        namespace: default
+  transport: http
+  timeout: 30s
+  description: "n8n AI tools exposed via MCP protocol"

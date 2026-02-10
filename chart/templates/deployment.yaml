@@ -15,6 +15,18 @@ spec:
       labels:
         app: {{ .Values.app.name }}
     spec:
+      {{- if .Values.mcp.enabled }}
+      # Init container to setup MCP tools
+      initContainers:
+      - name: setup-mcp-tools
+        image: busybox:latest
+        command: ['sh', '-c', 'cp /config/tools.json /tmp/tools/tools.json && echo "✅ MCP tools config copied"']
+        volumeMounts:
+        - name: mcp-tools-config
+          mountPath: /config
+        - name: tools-shared
+          mountPath: /tmp/tools
+      {{- end }}
       containers:
       - name: {{ .Values.app.name }}
         image: {{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}
@@ -48,9 +60,57 @@ spec:
             port: {{ .Values.app.port }}
           initialDelaySeconds: 10
           periodSeconds: 5
+      {{- if .Values.mcp.enabled }}
+      # MCP Server Sidecar - Exposes n8n tools via Model Context Protocol
+      - name: mcp-server
+        image: {{ .Values.mcp.image.repository }}:{{ .Values.mcp.image.tag }}
+        imagePullPolicy: {{ .Values.mcp.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.mcp.port }}
+          name: mcp
+        env:
+        {{- range $key, $value := .Values.mcp.env }}
+        - name: {{ $key }}
+          value: {{ $value | quote }}
+        {{- end }}
+        - name: N8N_INTERNAL_URL
+          value: {{ .Values.mcp.n8nUrl | quote }}
+        {{- if or .Values.n8nApiKey.create .Values.n8nApiKey.existingSecret }}
+        - name: N8N_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.n8nApiKey.existingSecret | default .Values.n8nApiKey.secretName }}
+              key: api-key
+              optional: true  # Allow startup without API key (will log warning)
+        {{- end }}
+        volumeMounts:
+        - name: tools-shared
+          mountPath: /tmp/tools
+        resources:
+          {{- toYaml .Values.mcp.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.mcp.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.mcp.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      {{- end }}
       volumes:
       {{- if .Values.storage.enabled }}
       - name: n8n-data
         persistentVolumeClaim:
           claimName: {{ .Values.app.name }}-pvc
+      {{- end }}
+      {{- if .Values.mcp.enabled }}
+      - name: tools-shared
+        emptyDir: {}
+      - name: mcp-tools-config
+        configMap:
+          name: {{ .Values.app.name }}-mcp-tools
       {{- end }}

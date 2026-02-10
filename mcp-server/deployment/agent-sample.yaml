@@ -1,0 +1,23 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: n8n-calculator-agent
+  namespace: default
+spec:
+  prompt: |
+    You are a helpful assistant with access to n8n tools.
+    Use the calculator tool for mathematical operations.
+    Use the word_count tool for text analysis.
+    Always explain your reasoning before using a tool.
+
+  modelRef:
+    name: gpt-4
+    namespace: default
+
+  tools:
+    # Reference the n8n MCP server
+    - type: custom
+      name: n8n-tools
+      mcpServerRef:
+        name: n8n-tools
+        namespace: default

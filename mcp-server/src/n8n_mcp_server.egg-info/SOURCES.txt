@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+src/main.py
+src/n8n_mcp_server.egg-info/PKG-INFO
+src/n8n_mcp_server.egg-info/SOURCES.txt
+src/n8n_mcp_server.egg-info/dependency_links.txt
+src/n8n_mcp_server.egg-info/requires.txt
+src/n8n_mcp_server.egg-info/top_level.txt
