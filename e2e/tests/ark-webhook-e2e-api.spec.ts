@@ -82,6 +82,14 @@ test.describe('ARK Webhook E2E Test', () => {
       console.log(`   ⚠ No redirect after 30s, current URL: ${page.url()}`);
     }
 
+    // Check if we're stuck on the nginx landing page (auto-login JavaScript didn't execute)
+    const currentUrl = page.url();
+    if (currentUrl === N8N_URL || currentUrl === `${N8N_URL}/`) {
+      console.log('   ⚠ Still on landing page, auto-login JavaScript did not execute');
+      console.log('   📍 Navigating directly to n8n setup page...');
+      await page.goto(`${N8N_URL}/setup`, { waitUntil: 'networkidle' });
+    }
+
     // If we're on setup page, fill it out (auto-login might have failed)
     if (page.url().includes('/setup') || (await page.getByText('Set up owner account').count()) > 0) {
       console.log('   📝 Completing owner setup via UI...');
