@@ -8,6 +8,7 @@ import {
 } from "n8n-workflow";
 import {
   getSessionId,
+  getAgentViaK8s,
   patchAgentViaK8s,
   postQuery,
   pollQueryStatus,
@@ -183,10 +184,24 @@ export class ArkAgentAdvanced implements INodeType {
       // Extract memory from connected sub-node
       const memoryRef = await extractMemoryRef(this, i);
 
+      // Save original agent configuration (for restoration after execution)
+      let originalConfig: {
+        modelRef?: { name: string; namespace: string } | null;
+        tools?: Array<{ type: string; name: string }> | null;
+      } | null = null;
+
       // Dynamic mode: Update agent configuration from sub-nodes
       if (configMode === "dynamic") {
         console.log("[ArkAgentAdvanced] In dynamic mode");
         try {
+          // Save original configuration before making changes
+          console.log("[ArkAgentAdvanced] Saving original agent config");
+          originalConfig = await getAgentViaK8s(this, namespace, agentName);
+          console.log(
+            "[ArkAgentAdvanced] Original config:",
+            JSON.stringify(originalConfig),
+          );
+
           // Extract model configuration from connected model node
           const modelRef = await extractModelRef(this, i);
           console.log("[ArkAgentAdvanced] Extracted modelRef:", modelRef);
@@ -319,6 +334,26 @@ export class ArkAgentAdvanced implements INodeType {
           continue;
         }
         throw new Error(`Query execution failed: ${error.message}`);
+      } finally {
+        // Restore original agent configuration if it was modified
+        if (configMode === "dynamic" && originalConfig) {
+          try {
+            console.log(
+              "[ArkAgentAdvanced] Restoring original agent config",
+            );
+            await patchAgentViaK8s(this, namespace, agentName, originalConfig);
+            console.log(
+              "[ArkAgentAdvanced] Original config restored successfully",
+            );
+          } catch (restoreError: any) {
+            console.error(
+              "[ArkAgentAdvanced] Failed to restore original config:",
+              restoreError.message,
+            );
+            // Don't throw here - the query already completed or failed
+            // Just log the restore failure
+          }
+        }
       }
     }
 

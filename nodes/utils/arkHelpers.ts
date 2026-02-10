@@ -162,6 +162,52 @@ export async function extractMemoryRef(
  * Update ARK agent configuration via PATCH API
  */
 /**
+ * Get current ARK agent configuration via Kubernetes API
+ */
+export async function getAgentViaK8s(
+  context: IExecuteFunctions,
+  namespace: string,
+  agentName: string,
+): Promise<{
+  modelRef?: { name: string; namespace: string } | null;
+  tools?: Array<{ type: string; name: string }> | null;
+}> {
+  const token = readFileSync(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token",
+    "utf8",
+  );
+  const caPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+
+  const k8sHost =
+    process.env.KUBERNETES_SERVICE_HOST || "kubernetes.default.svc";
+  const k8sPort = process.env.KUBERNETES_SERVICE_PORT || "443";
+  const apiUrl = `https://${k8sHost}:${k8sPort}/apis/ark.mckinsey.com/v1alpha1/namespaces/${namespace}/agents/${agentName}`;
+
+  try {
+    const agent = await context.helpers.request({
+      method: "GET",
+      url: apiUrl,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      json: true,
+      agentOptions: {
+        ca: readFileSync(caPath),
+      },
+    });
+
+    return {
+      modelRef: agent.spec?.modelRef || null,
+      tools: agent.spec?.tools || null,
+    };
+  } catch (error: any) {
+    throw new Error(
+      `Failed to get agent via Kubernetes API: ${error.message}`,
+    );
+  }
+}
+
+/**
  * Patch ARK agent directly via Kubernetes API (workaround for ARK API bug)
  * The ARK API doesn't properly save modelRef.namespace, so we use Kubernetes API instead
  */
@@ -180,17 +226,18 @@ export async function patchAgentViaK8s(
   );
 
   // Only proceed if we have something to update
-  if (!config.modelRef && (!config.tools || config.tools.length === 0)) {
-    console.log(`[patchAgentViaK8s] No config to update, skipping`);
+  // Check if config has any keys defined (even if they're null)
+  if (!("modelRef" in config) && !("tools" in config)) {
+    console.log(`[patchAgentViaK8s] No config fields to update, skipping`);
     return;
   }
 
-  // Build the patch
+  // Build the patch - include fields even if they're null (to clear them)
   const patch: any = { spec: {} };
-  if (config.modelRef) {
+  if ("modelRef" in config) {
     patch.spec.modelRef = config.modelRef;
   }
-  if (config.tools && config.tools.length > 0) {
+  if ("tools" in config) {
     patch.spec.tools = config.tools;
   }
 
