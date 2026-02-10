@@ -422,17 +422,31 @@ quickstart: ## Quick start with demo workflow (setup cluster, deploy, import dem
 
 quickstart-setup: ## Setup environment (cluster + deploy)
 	@echo "1️⃣  Setting up k3d cluster with ARK..."
-	@if k3d cluster list 2>/dev/null | grep -q ark-test; then \
-		echo "✓ Cluster ark-test already exists"; \
-	else \
+	@if ! k3d cluster list 2>/dev/null | grep -q ark-test; then \
 		echo "Creating new k3d cluster..."; \
 		k3d cluster create ark-test --agents 2 --port "5678:5678@loadbalancer" --network k3d-ark-test --wait; \
+	else \
+		echo "✓ Cluster ark-test already exists"; \
+	fi
+	@echo ""
+	@echo "Checking ARK installation..."
+	@if ! kubectl get namespace ark-system 2>/dev/null | grep -q ark-system; then \
 		echo "Installing ARK CLI..."; \
 		npm install -g @agents-at-scale/ark@0.1.51 || npm install -g @agents-at-scale/ark; \
 		echo "Installing ARK to cluster..."; \
 		ark install --yes --wait-for-ready 5m --verbose; \
+		echo "✓ ARK installed"; \
+	else \
+		echo "✓ ARK already installed"; \
+	fi
+	@echo ""
+	@echo "Checking ARK test resources..."
+	@if ! kubectl get agent test-agent -n default 2>/dev/null | grep -q test-agent; then \
 		echo "Setting up ARK test resources..."; \
 		$(MAKE) e2e-ark-free-api; \
+		echo "✓ Test resources created"; \
+	else \
+		echo "✓ Test resources already exist"; \
 	fi
 	@echo ""
 	@echo "2️⃣  Building Docker images..."
