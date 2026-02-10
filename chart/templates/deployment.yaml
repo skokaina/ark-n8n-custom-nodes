@@ -15,6 +15,7 @@ spec:
       labels:
         app: {{ .Values.app.name }}
     spec:
+      serviceAccountName: {{ .Values.app.name }}
       {{- if .Values.mcp.enabled }}
       # Init container to setup MCP tools
       initContainers:

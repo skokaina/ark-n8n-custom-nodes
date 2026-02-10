@@ -42,6 +42,7 @@
     "nodes": [
       "dist/nodes/ArkAgent/ArkAgent.node.js",
       "dist/nodes/ArkAgentAdvanced/ArkAgentAdvanced.node.js",
+      "dist/nodes/ArkAgentTool/ArkAgentTool.node.js",
       "dist/nodes/ArkModel/ArkModel.node.js",
       "dist/nodes/ArkModelSelector/ArkModelSelector.node.js",
       "dist/nodes/ArkMemory/ArkMemory.node.js",
@@ -53,7 +54,6 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^22.0.0",
-    "typescript-eslint": "^8.0.0",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
     "gulp": "^4.0.2",
@@ -62,7 +62,8 @@
     "n8n-workflow": "^1.0.0",
     "prettier": "^3.3.3",
     "ts-jest": "^29.2.4",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.0.0"
   },
   "dependencies": {},
   "peerDependencies": {

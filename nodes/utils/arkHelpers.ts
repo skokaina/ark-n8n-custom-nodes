@@ -1,4 +1,5 @@
 import { IExecuteFunctions } from "n8n-workflow";
+import { readFileSync } from "fs";
 
 /**
  * Build the Authorization header based on the configured auth scheme.
@@ -160,6 +161,79 @@ export async function extractMemoryRef(
 /**
  * Update ARK agent configuration via PATCH API
  */
+/**
+ * Patch ARK agent directly via Kubernetes API (workaround for ARK API bug)
+ * The ARK API doesn't properly save modelRef.namespace, so we use Kubernetes API instead
+ */
+export async function patchAgentViaK8s(
+  context: IExecuteFunctions,
+  namespace: string,
+  agentName: string,
+  config: {
+    modelRef?: { name: string; namespace: string } | null;
+    tools?: Array<{ type: string; name: string }> | null;
+  },
+): Promise<void> {
+  console.log(
+    `[patchAgentViaK8s] Called with config:`,
+    JSON.stringify(config),
+  );
+
+  // Only proceed if we have something to update
+  if (!config.modelRef && (!config.tools || config.tools.length === 0)) {
+    console.log(`[patchAgentViaK8s] No config to update, skipping`);
+    return;
+  }
+
+  // Build the patch
+  const patch: any = { spec: {} };
+  if (config.modelRef) {
+    patch.spec.modelRef = config.modelRef;
+  }
+  if (config.tools && config.tools.length > 0) {
+    patch.spec.tools = config.tools;
+  }
+
+  console.log(`[patchAgentViaK8s] Patch payload:`, JSON.stringify(patch));
+
+  // Read Kubernetes service account token and CA cert
+  const token = readFileSync(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token",
+    "utf8",
+  );
+  const caPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+
+  // Kubernetes API server endpoint
+  const k8sHost =
+    process.env.KUBERNETES_SERVICE_HOST || "kubernetes.default.svc";
+  const k8sPort = process.env.KUBERNETES_SERVICE_PORT || "443";
+  const apiUrl = `https://${k8sHost}:${k8sPort}/apis/ark.mckinsey.com/v1alpha1/namespaces/${namespace}/agents/${agentName}`;
+
+  console.log(`[patchAgentViaK8s] Patching ${apiUrl}`);
+
+  try {
+    const response = await context.helpers.request({
+      method: "PATCH",
+      url: apiUrl,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/merge-patch+json",
+      },
+      body: patch,
+      json: true,
+      agentOptions: {
+        ca: readFileSync(caPath),
+      },
+    });
+    console.log(`[patchAgentViaK8s] Patch successful:`, response);
+  } catch (error: any) {
+    console.error(`[patchAgentViaK8s] Patch failed:`, error.message);
+    throw new Error(
+      `Failed to patch agent via Kubernetes API: ${error.message}`,
+    );
+  }
+}
+
 export async function patchAgent(
   context: IExecuteFunctions,
   baseUrl: string,
