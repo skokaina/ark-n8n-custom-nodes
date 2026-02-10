@@ -1,0 +1,21 @@
+{
+  "tools": [
+    {
+      "name": "test_echo",
+      "description": "Echo back the input (test tool)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to echo"
+          }
+        },
+        "required": ["message"]
+      },
+      "executionEndpoint": "http://httpbin.org/post",
+      "method": "POST"
+    }
+  ],
+  "lastUpdated": "2026-02-10T12:00:00Z"
+}

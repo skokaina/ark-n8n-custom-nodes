@@ -42,13 +42,19 @@ describe("ArkAgentAdvanced Node", () => {
       const toolsInput = inputs.find((i: any) => i.type === "ai_tool");
 
       expect(chatModelInput).toBeDefined();
-      expect(chatModelInput?.filter).toBeUndefined();
+      expect(chatModelInput?.filter).toEqual({
+        nodes: ["CUSTOM.arkModel"],
+      });
 
       expect(memoryInput).toBeDefined();
-      expect(memoryInput?.filter).toBeUndefined();
+      expect(memoryInput?.filter).toEqual({
+        nodes: ["CUSTOM.arkMemory"],
+      });
 
       expect(toolsInput).toBeDefined();
-      expect(toolsInput?.filter).toBeUndefined();
+      expect(toolsInput?.filter).toEqual({
+        nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool"],
+      });
     });
 
     it("should have configuration mode property", () => {
@@ -179,8 +185,9 @@ describe("ArkAgentAdvanced Node", () => {
         agentName: "test-agent",
       });
 
-      // Should not call patchAgent in static mode
-      expect(arkHelpers.patchAgent).not.toHaveBeenCalled();
+      // Should not call patchAgentViaK8s in static mode
+      expect(arkHelpers.patchAgentViaK8s).not.toHaveBeenCalled();
+      expect(arkHelpers.getAgentViaK8s).not.toHaveBeenCalled();
       expect(arkHelpers.postQuery).toHaveBeenCalled();
     });
 
@@ -242,12 +249,14 @@ describe("ArkAgentAdvanced Node", () => {
 
       const mockModelRef = { name: "gpt-4", namespace: "default" };
       const mockTools = [{ type: "custom", name: "web-search" }];
+      const mockOriginalConfig = { modelRef: null, tools: null };
 
       (arkHelpers.getSessionId as jest.Mock).mockReturnValue("test-session-123");
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.extractModelRef as jest.Mock).mockResolvedValue(mockModelRef);
       (arkHelpers.extractToolsConfig as jest.Mock).mockResolvedValue(mockTools);
-      (arkHelpers.patchAgent as jest.Mock).mockResolvedValue(undefined);
+      (arkHelpers.getAgentViaK8s as jest.Mock).mockResolvedValue(mockOriginalConfig);
+      (arkHelpers.patchAgentViaK8s as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
         status: {
@@ -259,10 +268,20 @@ describe("ArkAgentAdvanced Node", () => {
 
       await node.execute.call(mockContext);
 
-      // Should call patchAgent with model and tools
-      expect(arkHelpers.patchAgent).toHaveBeenCalledWith(
+      // Should get original config first
+      expect(arkHelpers.getAgentViaK8s).toHaveBeenCalledWith(
         mockContext,
-        "http://ark-api:8000",
+        "default",
+        "test-agent"
+      );
+
+      // Should call patchAgentViaK8s twice: once to update, once to restore
+      expect(arkHelpers.patchAgentViaK8s).toHaveBeenCalledTimes(2);
+
+      // First call: patch with new config
+      expect(arkHelpers.patchAgentViaK8s).toHaveBeenNthCalledWith(
+        1,
+        mockContext,
         "default",
         "test-agent",
         {
@@ -270,9 +289,18 @@ describe("ArkAgentAdvanced Node", () => {
           tools: mockTools,
         }
       );
+
+      // Second call: restore original config
+      expect(arkHelpers.patchAgentViaK8s).toHaveBeenNthCalledWith(
+        2,
+        mockContext,
+        "default",
+        "test-agent",
+        mockOriginalConfig
+      );
     });
 
-    it("should skip patching if no model or tools connected", async () => {
+    it("should skip update patch if no model or tools connected, but still restore", async () => {
       const mockContext = createMockExecuteFunctions({
         inputData: [{ json: {} }],
         parameters: {
@@ -291,10 +319,14 @@ describe("ArkAgentAdvanced Node", () => {
         },
       });
 
+      const mockOriginalConfig = { modelRef: null, tools: null };
+
       (arkHelpers.getSessionId as jest.Mock).mockReturnValue("test-session-123");
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.extractModelRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.extractToolsConfig as jest.Mock).mockResolvedValue(null);
+      (arkHelpers.getAgentViaK8s as jest.Mock).mockResolvedValue(mockOriginalConfig);
+      (arkHelpers.patchAgentViaK8s as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
       (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
         status: { phase: "done", response: { content: "Response" }},
@@ -302,8 +334,22 @@ describe("ArkAgentAdvanced Node", () => {
 
       await node.execute.call(mockContext);
 
-      // Should not call patchAgent
-      expect(arkHelpers.patchAgent).not.toHaveBeenCalled();
+      // Should get original config
+      expect(arkHelpers.getAgentViaK8s).toHaveBeenCalledWith(
+        mockContext,
+        "default",
+        "test-agent"
+      );
+
+      // Should call patchAgentViaK8s only once (for restore in finally block)
+      // Even though we skip the update patch (no model/tools), we still restore
+      expect(arkHelpers.patchAgentViaK8s).toHaveBeenCalledTimes(1);
+      expect(arkHelpers.patchAgentViaK8s).toHaveBeenCalledWith(
+        mockContext,
+        "default",
+        "test-agent",
+        mockOriginalConfig
+      );
     });
   });
 
@@ -402,11 +448,14 @@ describe("ArkAgentAdvanced Node", () => {
         },
       });
 
+      const mockOriginalConfig = { modelRef: null, tools: null };
+
       (arkHelpers.getSessionId as jest.Mock).mockReturnValue("test-session-123");
       (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
       (arkHelpers.extractModelRef as jest.Mock).mockResolvedValue({ name: "gpt-4", namespace: "default" });
       (arkHelpers.extractToolsConfig as jest.Mock).mockResolvedValue([]);
-      (arkHelpers.patchAgent as jest.Mock).mockRejectedValue(new Error("Patch failed"));
+      (arkHelpers.getAgentViaK8s as jest.Mock).mockResolvedValue(mockOriginalConfig);
+      (arkHelpers.patchAgentViaK8s as jest.Mock).mockRejectedValue(new Error("Patch failed"));
 
       await expect(node.execute.call(mockContext)).rejects.toThrow(
         "Failed to update agent configuration: Patch failed"

@@ -1,0 +1,18 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: MCPServer
+metadata:
+  name: n8n-tools
+  labels:
+    app: {{ .Values.app.name }}
+spec:
+  address:
+    valueFrom:
+      serviceRef:
+        name: {{ .Values.app.name }}
+        namespace: {{ .Release.Namespace }}
+        port: "mcp"
+        path: "/mcp"
+  transport: http
+  timeout: 30s
+{{- end }}

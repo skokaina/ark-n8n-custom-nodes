@@ -1,34 +1,57 @@
-# Demo/evaluation values - pre-configured demo account
-# WARNING: Only use in secure, non-production environments!
+# Demo values - optimized for quickstart and manual testing
 # Usage: helm install ark-n8n ./chart -f chart/values-demo.yaml
 
 app:
   env:
-    # Public-friendly settings
-    N8N_HOST: ark-n8n-demo.127.0.0.1.nip.io
-    N8N_EDITOR_BASE_URL: http://ark-n8n-demo.127.0.0.1.nip.io
-    WEBHOOK_URL: http://ark-n8n-demo.127.0.0.1.nip.io
+    # Disable authentication for easy demo
+    N8N_BASIC_AUTH_ACTIVE: "false"
+    N8N_USER_MANAGEMENT_DISABLED: "true"
 
-    # Skip onboarding survey for demo environments
+    # Demo hostname (match proxy port)
+    N8N_HOST: localhost:8080
+    N8N_EDITOR_BASE_URL: http://localhost:8080
+    WEBHOOK_URL: http://localhost:8080
+
+    # Skip onboarding
     N8N_PERSONALIZATION_ENABLED: "false"
 
-    # CORS configuration for localhost and demo domains
-    N8N_DEFAULT_CORS: "TRUE"
-    N8N_CORS_ALLOW_ORIGIN: "http://localhost:5678,http://localhost:8080,http://127.0.0.1:5678,http://127.0.0.1:8080,http://ark-n8n-demo.127.0.0.1.nip.io"
-    WEBHOOK_CORS_ALLOWED_ORIGINS: "http://localhost:5678,http://localhost:8080,http://127.0.0.1:5678,http://127.0.0.1:8080,http://ark-n8n-demo.127.0.0.1.nip.io"
+    # Info logging for demo (not too verbose)
+    N8N_LOG_LEVEL: info
+    N8N_LOG_OUTPUT: console
 
+# Disable HTTPRoute (use port-forward)
 httpRoute:
-  enabled: true
-  hostnames:
-    - ark-n8n-demo.127.0.0.1.nip.io
-  origin: "ark-n8n-demo.127.0.0.1.nip.io"
-  # Use nginx proxy for auto-login
-  backend:
-    service: ark-n8n-proxy
-    port: 80
+  enabled: false
 
-# Demo mode with auto-login proxy
+# ARK API configuration
+ark:
+  apiUrl: http://ark-api.default.svc.cluster.local
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Enable auto-login proxy for demo
 demo:
   enabled: true
   email: "admin@example.com"
   password: "Admin123!@#"
+
+# MCP server (optional - can enable if needed)
+mcp:
+  enabled: true
+  image:
+    repository: ark-n8n-mcp
+    tag: test
+    pullPolicy: Never
+  n8nUrl: "http://localhost:5678"
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

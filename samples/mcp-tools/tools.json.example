@@ -1,0 +1,53 @@
+{
+  "tools": [
+    {
+      "name": "calculator",
+      "description": "Perform mathematical calculations",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "expression": {
+            "type": "string",
+            "description": "Mathematical expression to evaluate"
+          }
+        },
+        "required": ["expression"]
+      },
+      "webhookPath": "/webhook/tool/calculator",
+      "method": "POST"
+    },
+    {
+      "name": "get_weather",
+      "description": "Get weather information for a location",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "City or location name"
+          }
+        },
+        "required": ["location"]
+      },
+      "webhookPath": "/webhook/tool/weather",
+      "method": "POST"
+    },
+    {
+      "name": "custom_tool",
+      "description": "Example custom tool with full URL (legacy format)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string",
+            "description": "Tool input"
+          }
+        },
+        "required": ["input"]
+      },
+      "executionEndpoint": "https://external-api.example.com/webhook/custom",
+      "method": "POST"
+    }
+  ],
+  "lastUpdated": "2026-02-10T12:00:00Z"
+}

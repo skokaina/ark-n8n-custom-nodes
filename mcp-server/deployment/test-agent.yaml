@@ -1,0 +1,29 @@
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Agent
+metadata:
+  name: mcp-test-agent
+  namespace: default
+spec:
+  prompt: "You are a helpful assistant that can perform calculations and count words."
+  modelRef:
+    name: default
+    namespace: default
+  tools:
+    - type: mcp
+      mcpServerRef:
+        name: n8n-tools
+        namespace: default
+---
+apiVersion: ark.mckinsey.com/v1alpha1
+kind: Query
+metadata:
+  name: test-calculator
+  namespace: default
+spec:
+  input: "What is 25 multiplied by 42?"
+  targets:
+    - type: agent
+      name: mcp-test-agent
+      namespace: default
+  wait: true
+  timeout: 30s
