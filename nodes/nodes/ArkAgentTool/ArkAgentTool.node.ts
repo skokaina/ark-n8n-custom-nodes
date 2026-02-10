@@ -56,7 +56,13 @@ export class ArkAgentTool implements INodeType {
         },
       },
     ],
-    outputs: ["main"],
+    outputs: [
+      "main",
+      {
+        displayName: "Tool",
+        type: "ai_tool",
+      },
+    ],
     credentials: [
       {
         name: "arkApi",
