@@ -51,7 +51,7 @@ jobs:
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push Docker image
+      - name: Build and push ark-n8n image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -61,6 +61,20 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/ark-n8n:${{ steps.version.outputs.tag }}
             ghcr.io/${{ github.repository_owner }}/ark-n8n:latest
           cache-from: |
-            type=gha
+            type=gha,scope=ark-n8n
           cache-to: |
-            type=gha,mode=max
+            type=gha,mode=max,scope=ark-n8n
+
+      - name: Build and push ark-n8n-mcp image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./mcp-server
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/ark-n8n-mcp:${{ steps.version.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/ark-n8n-mcp:latest
+          cache-from: |
+            type=gha,scope=ark-n8n-mcp
+          cache-to: |
+            type=gha,mode=max,scope=ark-n8n-mcp
