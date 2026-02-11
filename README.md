@@ -14,35 +14,115 @@ This package extends n8n with custom nodes that connect to ARK, enabling you to:
 - Manage models and evaluate response quality
 - Build complex agentic applications with visual programming
 
+## Features
+
+✨ **One-Line Install** - `curl | bash` and you're done
+🔒 **Auto-Login** - Demo mode with default credentials for quick testing
+🌐 **Idempotent Nginx Proxy** - Works with any domain without configuration
+💾 **Persistent Storage** - 1Gi PVC for workflows and credentials (always enabled)
+🔄 **Production Ready** - Disable demo mode for production deployments
+📦 **Helm Chart** - Easy upgrades and configuration management
+
 ## Quick Install
 
-**Prerequisites:** Kubernetes cluster with ARK installed, kubectl, Helm 3.x
+**Prerequisites:** Kubernetes cluster with [ARK installed](https://mckinsey.github.io/agents-at-scale-ark/), kubectl, Helm 3.x
 
-### Production Install
+### One-Line Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
+```
+
+**What gets installed:**
+- ✅ n8n with ARK custom nodes
+- ✅ Auto-login enabled (demo mode)
+- ✅ Nginx proxy (works with any domain automatically)
+- ✅ 1Gi persistent storage for workflows/credentials
+
+### Manual Install
+
+```bash
+# Latest version
 helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
+
+# Specific version
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --version 0.1.0
 ```
-
-### Demo Install (with default credentials)
-
-```bash
-helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  -f https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/chart/values-demo.yaml
-```
-
-**Demo credentials:** `admin@example.com` / `Admin123!@#`
 
 ### Access n8n
 
+**Local (port-forward):**
 ```bash
-kubectl port-forward svc/ark-n8n 5678:5678
-# Open http://localhost:5678
+kubectl port-forward svc/ark-n8n-proxy 8080:80
+# Open http://localhost:8080
 ```
+
+**Production (LoadBalancer/Ingress):**
+```bash
+# Point your LoadBalancer or Ingress to:
+#   Service: ark-n8n-proxy
+#   Port: 80
+# The nginx proxy auto-configures for any domain!
+```
+
+**Default credentials (demo mode):**
+- Email: `admin@example.com`
+- Password: `Admin123!@#`
 
 **Configure ARK API credentials:**
 1. n8n UI → Settings → Credentials → Add Credential → ARK API
-2. Enter ARK API URL: `http://ark-api.ark-system.svc.cluster.local`
+2. Enter ARK API URL: `http://ark-api.default.svc.cluster.local` (adjust namespace if needed)
+
+---
+
+## Production Deployment
+
+**Disable demo mode for production:**
+```bash
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set demo.enabled=false \
+  --reuse-values
+```
+
+**Configure for your domain:**
+```bash
+# The nginx proxy auto-configures! Just point your infrastructure:
+# 1. Configure LoadBalancer or Ingress to route to:
+#    Service: ark-n8n-proxy
+#    Port: 80
+#
+# 2. Set DNS for your domain (e.g., n8n.example.com)
+#
+# 3. The proxy automatically adapts to the domain!
+#    No N8N_HOST configuration needed!
+```
+
+**Enable HTTPS (recommended):**
+```bash
+# Use cert-manager, AWS ACM, or your certificate solution
+# The proxy supports HTTPS when configured at the LoadBalancer/Ingress level
+```
+
+**Storage management:**
+```bash
+# Default: 1Gi PVC (always enabled)
+# Resize if needed:
+kubectl edit pvc ark-n8n-pvc
+
+# Or during install:
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set storage.size=10Gi
+```
+
+**Security:**
+- Create users via n8n UI after disabling demo mode
+- Use strong passwords
+- Configure 2FA if available
+- Restrict network access via NetworkPolicies
+
+See [Production Guide](./docs/PRODUCTION.md) for detailed security and scaling recommendations.
+
+---
 
 ## Custom Nodes
 
@@ -151,20 +231,24 @@ Example workflows available in [`samples/n8n-workflows/`](./samples/n8n-workflow
 ## Quick Commands
 
 ```bash
-# Install
+# Install (one-line)
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
+
+# Or using Makefile
 make quick-install
+
+# Access n8n
+kubectl port-forward svc/ark-n8n-proxy 8080:80
 
 # Development
 make dev
 
 # Testing
-make test              # Unit tests
-make e2e-setup && make e2e  # E2E tests
+make test                    # Unit tests
+make e2e-reset && make e2e   # E2E tests
 
-# Release
-make release-patch     # Bug fixes
-make release-minor     # New features
-make release-major     # Breaking changes
+# Upgrade
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --reuse-values
 ```
 
 ## License
