@@ -10,18 +10,9 @@ Custom n8n nodes for [ARK](https://mckinsey.github.io/agents-at-scale-ark/) (Age
 ## What is this?
 
 This package extends n8n with custom nodes that connect to ARK, enabling you to:
+- Build complex agentic applications reusing deployed resources on the ARK cluster
 - Execute AI agents and multi-agent teams from workflows
-- Manage models and evaluate response quality
-- Build complex agentic applications with visual programming
-
-## Features
-
-✨ **One-Line Install** - `curl | bash` and you're done
-🔒 **Auto-Login** - Demo mode with default credentials for quick testing
-🌐 **Idempotent Nginx Proxy** - Works with any domain without configuration
-💾 **Persistent Storage** - 1Gi PVC for workflows and credentials (always enabled)
-🔄 **Production Ready** - Disable demo mode for production deployments
-📦 **Helm Chart** - Easy upgrades and configuration management
+- Reuse ARK models and evaluate response quality 
 
 ## Quick Install
 
@@ -69,7 +60,7 @@ kubectl port-forward svc/ark-n8n-proxy 8080:80
 
 ---
 
-## Custom Nodes
+## Custom Nodes 
 
 ### ARK Agent
 Execute pre-configured ARK agents with simple queries.
