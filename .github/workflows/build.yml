@@ -2,6 +2,12 @@ name: Build and Push
 
 on:
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 0.1.0)'
+        required: true
+        type: string
   push:
     tags:
       - "v*"
@@ -39,14 +45,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from tag
+      - name: Extract version from tag or input
         id: version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [[ -n "${{ inputs.version }}" ]]; then
+            # Called via workflow_call with version input
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Triggered by tag push
             VERSION=${GITHUB_REF#refs/tags/}
             echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
             echo "tag=${VERSION#v}" >> $GITHUB_OUTPUT
           else
+            # Manual dispatch or other trigger
             echo "version=dev" >> $GITHUB_OUTPUT
             echo "tag=latest" >> $GITHUB_OUTPUT
           fi
