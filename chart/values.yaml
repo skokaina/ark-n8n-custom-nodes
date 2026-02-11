@@ -44,9 +44,9 @@ ark:
       memory: 256Mi
 
 mcp:
-  enabled: true
+  enabled: false  # MCP image not published yet - enable manually if building locally
   image:
-    repository: ark-n8n-mcp
+    repository: ghcr.io/skokaina/ark-n8n-mcp
     pullPolicy: IfNotPresent
     tag: latest
   port: 8080
