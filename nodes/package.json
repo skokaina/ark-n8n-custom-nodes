@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-ark",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "n8n community nodes for ARK (Agentic Runtime for Kubernetes)",
   "keywords": [
     "n8n-community-node-package",
