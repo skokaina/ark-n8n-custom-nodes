@@ -57,14 +57,6 @@ kubectl port-forward svc/ark-n8n-proxy 8080:80
 # Open http://localhost:8080
 ```
 
-**Production (LoadBalancer/Ingress):**
-```bash
-# Point your LoadBalancer or Ingress to:
-#   Service: ark-n8n-proxy
-#   Port: 80
-# The nginx proxy auto-configures for any domain!
-```
-
 **Default credentials (demo mode):**
 - Email: `admin@example.com`
 - Password: `Admin123!@#`
@@ -73,54 +65,7 @@ kubectl port-forward svc/ark-n8n-proxy 8080:80
 1. n8n UI → Settings → Credentials → Add Credential → ARK API
 2. Enter ARK API URL: `http://ark-api.default.svc.cluster.local` (adjust namespace if needed)
 
----
-
-## Production Deployment
-
-**Disable demo mode for production:**
-```bash
-helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  --set demo.enabled=false \
-  --reuse-values
-```
-
-**Configure for your domain:**
-```bash
-# The nginx proxy auto-configures! Just point your infrastructure:
-# 1. Configure LoadBalancer or Ingress to route to:
-#    Service: ark-n8n-proxy
-#    Port: 80
-#
-# 2. Set DNS for your domain (e.g., n8n.example.com)
-#
-# 3. The proxy automatically adapts to the domain!
-#    No N8N_HOST configuration needed!
-```
-
-**Enable HTTPS (recommended):**
-```bash
-# Use cert-manager, AWS ACM, or your certificate solution
-# The proxy supports HTTPS when configured at the LoadBalancer/Ingress level
-```
-
-**Storage management:**
-```bash
-# Default: 1Gi PVC (always enabled)
-# Resize if needed:
-kubectl edit pvc ark-n8n-pvc
-
-# Or during install:
-helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  --set storage.size=10Gi
-```
-
-**Security:**
-- Create users via n8n UI after disabling demo mode
-- Use strong passwords
-- Configure 2FA if available
-- Restrict network access via NetworkPolicies
-
-See [Production Guide](./docs/PRODUCTION.md) for detailed security and scaling recommendations.
+**Production deployment:** See [Production Guide](./docs/PRODUCTION.md) for domain setup, HTTPS, security hardening, and scaling.
 
 ---
 
@@ -211,30 +156,12 @@ Example workflows available in [`samples/n8n-workflows/`](./samples/n8n-workflow
 2. Configure ARK API credentials
 3. Execute
 
-## Further Reading
-
-### User Guides
-- **[Configuration](./docs/CONFIGURATION.md)** - Helm values, environment variables, custom deployments
-- **[Deployment Modes](./docs/DEPLOYMENT_MODES.md)** - Production, demo, and testing configurations
-- **[Testing](./docs/TESTING.md)** - E2E tests, unit tests, quality assurance
-- **[Production Guide](./docs/PRODUCTION.md)** - Security, monitoring, scaling
-
-### Developer Guides
-- **[Development](./docs/DEVELOPMENT.md)** - Local setup, DevSpace, building custom nodes
-- **[Contributing](./docs/CONTRIBUTING.md)** - Adding nodes, reporting issues
-- **[Release Process](./docs/RELEASE.md)** - Versioning, publishing, changelog
-
-### Reference
-- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Architecture](./CLAUDE.md)** - Project structure, technical decisions
 
 ## Quick Commands
 
 ```bash
-# Install (one-line)
-curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
 
-# Or using Makefile
+# Local quick-install using cloned repo 
 make quick-install
 
 # Access n8n
@@ -251,6 +178,23 @@ make e2e-reset && make e2e   # E2E tests
 helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --reuse-values
 ```
 
+## Further Reading
+
+### User Guides
+- **[Configuration](./docs/CONFIGURATION.md)** - Helm values, environment variables, custom deployments
+- **[Deployment Modes](./docs/DEPLOYMENT_MODES.md)** - Production, demo, and testing configurations
+- **[Testing](./docs/TESTING.md)** - E2E tests, unit tests, quality assurance
+- **[Production Guide](./docs/PRODUCTION.md)** - Security, monitoring, scaling
+
+### Developer Guides
+- **[Development](./docs/DEVELOPMENT.md)** - Local setup, DevSpace, building custom nodes
+- **[Contributing](./docs/CONTRIBUTING.md)** - Adding nodes, reporting issues
+- **[Release Process](./docs/RELEASE.md)** - Versioning, publishing, changelog
+
+### Reference
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Architecture](./CLAUDE.md)** - Project structure, technical decisions
+- 
 ## License
 
 MIT
