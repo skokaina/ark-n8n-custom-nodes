@@ -8,13 +8,14 @@ app:
   port: 5678
 
   env:
-    N8N_HOST: ark-n8n.default.127.0.0.1.nip.io
+    # Simple localhost defaults - works with port-forward or LoadBalancer
+    N8N_HOST: localhost:8080
     N8N_PORT: "5678"
     N8N_PROTOCOL: http
     N8N_SECURE_COOKIE: "false"
     N8N_PROXY_HOPS: "1"
-    N8N_EDITOR_BASE_URL: http://ark-n8n.default.127.0.0.1.nip.io
-    WEBHOOK_URL: http://ark-n8n.default.127.0.0.1.nip.io
+    N8N_EDITOR_BASE_URL: http://localhost:8080
+    WEBHOOK_URL: http://localhost:8080
     N8N_PUSH_BACKEND: websocket
     GENERIC_TIMEZONE: America/New_York
     N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
@@ -24,11 +25,10 @@ app:
     EXECUTIONS_DATA_SAVE_ON_ERROR: "all"
 
     # Authentication settings
-    # For production: keep N8N_BASIC_AUTH_ACTIVE=true and set credentials
-    # For testing/demos: set N8N_BASIC_AUTH_ACTIVE=false to disable login
-    N8N_BASIC_AUTH_ACTIVE: "true"
-    # N8N_BASIC_AUTH_USER: "admin"
-    # N8N_BASIC_AUTH_PASSWORD: "changeme"
+    # For production: enable user management and create owner account
+    # For testing/demos: see chart/values-demo.yaml
+    N8N_BASIC_AUTH_ACTIVE: "false"
+    N8N_USER_MANAGEMENT_DISABLED: "false"
 
 ark:
   apiUrl: http://ark-api.default.svc.cluster.local:80
@@ -44,9 +44,9 @@ ark:
       memory: 256Mi
 
 mcp:
-  enabled: true
+  enabled: false  # Disabled by default - enable if you need MCP tool access
   image:
-    repository: ark-n8n-mcp
+    repository: ghcr.io/skokaina/ark-n8n-mcp
     pullPolicy: IfNotPresent
     tag: latest
   port: 8080
@@ -88,8 +88,15 @@ storage:
   accessMode: ReadWriteOnce
   mountPath: /home/node/.n8n
 
-httpRoute:
+# Enable demo mode with nginx proxy for easy setup (recommended for quickstart)
+demo:
   enabled: true
+  email: "admin@example.com"
+  password: "Admin123!@#"
+
+# HTTPRoute for advanced setups with Gateway API (optional)
+httpRoute:
+  enabled: false  # Disabled by default - enable if you have Gateway API configured
   gateway:
     name: localhost-gateway
     namespace: ark-system

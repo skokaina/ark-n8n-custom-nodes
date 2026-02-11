@@ -17,13 +17,9 @@ data:
         server {{ include "ark-n8n.fullname" . }}:{{ .Values.service.port }};
       }
 
-      # Map to set CORS origin dynamically
+      # Map to set CORS origin dynamically - permissive for demo mode
       map $http_origin $cors_origin {
-        default "";
-        "~^http://localhost(:[0-9]+)?$" $http_origin;
-        "~^http://127\.0\.0\.1(:[0-9]+)?$" $http_origin;
-        "~^http://.*\.127\.0\.0\.1\.nip\.io$" $http_origin;
-        "~^http://ark-n8n.*\.nip\.io$" $http_origin;
+        default $http_origin;  # Allow any origin for demo flexibility
       }
 
       server {
@@ -41,6 +37,11 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Critical: Set Origin header that n8n expects (matches N8N_EDITOR_BASE_URL)
+        # Uses the actual request scheme and host for idempotent deployment
+        proxy_set_header Origin $scheme://$http_host;
+
         proxy_set_header Content-Type $http_content_type;
         proxy_set_header Content-Length $http_content_length;
 
