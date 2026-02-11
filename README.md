@@ -10,41 +10,57 @@ Custom n8n nodes for [ARK](https://mckinsey.github.io/agents-at-scale-ark/) (Age
 ## What is this?
 
 This package extends n8n with custom nodes that connect to ARK, enabling you to:
+- Build complex agentic applications reusing deployed resources on the ARK cluster
 - Execute AI agents and multi-agent teams from workflows
-- Manage models and evaluate response quality
-- Build complex agentic applications with visual programming
+- Reuse ARK models and evaluate response quality 
 
 ## Quick Install
 
-**Prerequisites:** Kubernetes cluster with ARK installed, kubectl, Helm 3.x
+**Prerequisites:** Kubernetes cluster with [ARK installed](https://mckinsey.github.io/agents-at-scale-ark/), kubectl, Helm 3.x
 
-### Production Install
+### One-Line Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
+```
+
+**What gets installed:**
+- ✅ n8n with ARK custom nodes
+- ✅ Auto-login enabled (demo mode)
+- ✅ Nginx proxy (works with any domain automatically)
+- ✅ 1Gi persistent storage for workflows/credentials
+
+### Manual Install
+
+```bash
+# Latest version
 helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
+
+# Specific version
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --version 0.1.0
 ```
-
-### Demo Install (with default credentials)
-
-```bash
-helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  -f https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/chart/values-demo.yaml
-```
-
-**Demo credentials:** `admin@example.com` / `Admin123!@#`
 
 ### Access n8n
 
+**Local (port-forward):**
 ```bash
-kubectl port-forward svc/ark-n8n 5678:5678
-# Open http://localhost:5678
+kubectl port-forward svc/ark-n8n-proxy 8080:80
+# Open http://localhost:8080
 ```
+
+**Default credentials (demo mode):**
+- Email: `admin@example.com`
+- Password: `Admin123!@#`
 
 **Configure ARK API credentials:**
 1. n8n UI → Settings → Credentials → Add Credential → ARK API
-2. Enter ARK API URL: `http://ark-api.ark-system.svc.cluster.local`
+2. Enter ARK API URL: `http://ark-api.default.svc.cluster.local` (adjust namespace if needed)
 
-## Custom Nodes
+**Production deployment:** See [Production Guide](./docs/PRODUCTION.md) for domain setup, HTTPS, security hardening, and scaling.
+
+---
+
+## Custom Nodes 
 
 ### ARK Agent
 Execute pre-configured ARK agents with simple queries.
@@ -131,6 +147,28 @@ Example workflows available in [`samples/n8n-workflows/`](./samples/n8n-workflow
 2. Configure ARK API credentials
 3. Execute
 
+
+## Quick Commands
+
+```bash
+
+# Local quick-install using cloned repo 
+make quick-install
+
+# Access n8n
+kubectl port-forward svc/ark-n8n-proxy 8080:80
+
+# Development
+make dev
+
+# Testing
+make test                    # Unit tests
+make e2e-reset && make e2e   # E2E tests
+
+# Upgrade
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --reuse-values
+```
+
 ## Further Reading
 
 ### User Guides
@@ -147,26 +185,7 @@ Example workflows available in [`samples/n8n-workflows/`](./samples/n8n-workflow
 ### Reference
 - **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[Architecture](./CLAUDE.md)** - Project structure, technical decisions
-
-## Quick Commands
-
-```bash
-# Install
-make quick-install
-
-# Development
-make dev
-
-# Testing
-make test              # Unit tests
-make e2e-setup && make e2e  # E2E tests
-
-# Release
-make release-patch     # Bug fixes
-make release-minor     # New features
-make release-major     # Breaking changes
-```
-
+- 
 ## License
 
 MIT
