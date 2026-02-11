@@ -5,7 +5,7 @@ app:
   env:
     # Disable basic auth but enable user management for auto-login
     N8N_BASIC_AUTH_ACTIVE: "false"
-    N8N_USER_MANAGEMENT_DISABLED: "true"
+    N8N_USER_MANAGEMENT_DISABLED: "false"
 
     # Simpler hostname for testing (match proxy port for WebSocket)
     N8N_HOST: localhost:8080
@@ -41,19 +41,6 @@ demo:
   email: "admin@example.com"
   password: "Admin123!@#"
 
-# Enable MCP server for E2E testing
+# MCP not needed for E2E tests (tests run workflows internally, not via MCP)
 mcp:
-  enabled: true
-  image:
-    repository: ark-n8n-mcp
-    tag: test
-    pullPolicy: Never
-  # n8n URL for testing environment
-  n8nUrl: "http://localhost:5678"
-  resources:
-    limits:
-      cpu: 100m
-      memory: 128Mi
-    requests:
-      cpu: 50m
-      memory: 64Mi
+  enabled: false
