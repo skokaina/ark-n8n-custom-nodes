@@ -68,3 +68,8 @@ service:
   type: ClusterIP
   port: 5678
   targetPort: 5678
+
+demo:
+  enabled: false
+  email: ""
+  password: ""

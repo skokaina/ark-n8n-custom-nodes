@@ -1,6 +1,7 @@
 import {
   getAuthHeader,
   getSessionId,
+  sanitizeK8sLabel,
   patchAgent,
   postQuery,
   pollQueryStatus,
@@ -85,6 +86,41 @@ describe("arkHelpers", () => {
     });
   });
 
+  describe("sanitizeK8sLabel", () => {
+    it("should leave a valid label unchanged", () => {
+      expect(sanitizeK8sLabel("valid-session-123")).toBe("valid-session-123");
+    });
+
+    it("should strip trailing underscore (the bug scenario)", () => {
+      expect(sanitizeK8sLabel("DAxdE2jq07BPew2wOGI1_")).toBe("DAxdE2jq07BPew2wOGI1");
+    });
+
+    it("should strip leading underscore", () => {
+      expect(sanitizeK8sLabel("_session-abc")).toBe("session-abc");
+    });
+
+    it("should strip both leading and trailing underscores", () => {
+      expect(sanitizeK8sLabel("_session_")).toBe("session");
+    });
+
+    it("should preserve underscores in the middle", () => {
+      expect(sanitizeK8sLabel("session_abc_123")).toBe("session_abc_123");
+    });
+
+    it("should strip multiple trailing non-alphanumeric characters", () => {
+      expect(sanitizeK8sLabel("abc___")).toBe("abc");
+    });
+
+    it("should truncate to 63 characters", () => {
+      const long = "a".repeat(70);
+      expect(sanitizeK8sLabel(long)).toHaveLength(63);
+    });
+
+    it("should return empty string for all-invalid input", () => {
+      expect(sanitizeK8sLabel("___")).toBe("");
+    });
+  });
+
   describe("getSessionId", () => {
     it("should return user-provided session ID", () => {
       const mockContext = createMockExecuteFunctions({
@@ -108,6 +144,30 @@ describe("arkHelpers", () => {
       const sessionId = getSessionId(mockContext, 0);
 
       expect(sessionId).toBe("session-with-spaces");
+    });
+
+    it("should strip trailing underscore to produce valid Kubernetes label", () => {
+      const mockContext = createMockExecuteFunctions({
+        parameters: {
+          sessionId: "DAxdE2jq07BPew2wOGI1_",
+        },
+      });
+
+      const sessionId = getSessionId(mockContext, 0);
+
+      expect(sessionId).toBe("DAxdE2jq07BPew2wOGI1");
+    });
+
+    it("should strip leading non-alphanumeric characters", () => {
+      const mockContext = createMockExecuteFunctions({
+        parameters: {
+          sessionId: "_my-session",
+        },
+      });
+
+      const sessionId = getSessionId(mockContext, 0);
+
+      expect(sessionId).toBe("my-session");
     });
 
     it("should auto-generate session ID if empty", () => {
@@ -311,7 +371,7 @@ describe("arkHelpers", () => {
   });
 
   describe("patchAgent", () => {
-    it("should patch agent with model and tools", async () => {
+    it("should PUT agent with model and tools using flat AgentUpdateRequest body", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -331,13 +391,11 @@ describe("arkHelpers", () => {
 
       expect(mockContext.helpers.request).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: "PATCH",
-          url: "http://ark-api:8000/v1/namespaces/default/agents/test-agent",
+          method: "PUT",
+          url: "http://ark-api:8000/v1/agents/test-agent",
           body: {
-            spec: {
-              modelRef: { name: "gpt-4", namespace: "default" },
-              tools: [{ type: "builtin", name: "web-search" }],
-            },
+            modelRef: { name: "gpt-4", namespace: "default" },
+            tools: [{ type: "builtin", name: "web-search" }],
           },
           json: true,
         })
@@ -445,10 +503,10 @@ describe("arkHelpers", () => {
 
       expect(mockContext.helpers.request).toHaveBeenCalledWith(
         expect.objectContaining({
+          method: "PUT",
+          url: "http://ark-api:8000/v1/agents/test-agent",
           body: {
-            spec: {
-              modelRef: { name: "gpt-4", namespace: "default" },
-            },
+            modelRef: { name: "gpt-4", namespace: "default" },
           },
         })
       );

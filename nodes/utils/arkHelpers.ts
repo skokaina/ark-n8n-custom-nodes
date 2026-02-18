@@ -23,6 +23,19 @@ export function getAuthHeader(credentials: {
 }
 
 /**
+ * Sanitize a string to be a valid Kubernetes label value.
+ * Strips leading/trailing characters that are not alphanumeric.
+ * Enforces the 63-character max length limit.
+ * Regex rule: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
+ */
+export function sanitizeK8sLabel(value: string): string {
+  return value
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .replace(/[^A-Za-z0-9]+$/, "")
+    .slice(0, 63);
+}
+
+/**
  * Get or generate session ID for conversation continuity
  */
 export function getSessionId(
@@ -42,7 +55,8 @@ export function getSessionId(
     sessionId = `n8n-${workflow.id}-${executionId}-${timestamp}`;
   }
 
-  return sessionId.trim();
+  // Strip leading/trailing chars that violate Kubernetes label rules
+  return sanitizeK8sLabel(sessionId.trim());
 }
 
 /**
@@ -172,28 +186,28 @@ export async function patchAgent(
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
 
-  const patchBody: any = { spec: {} };
+  const putBody: any = {};
 
   if (config.modelRef) {
-    patchBody.spec.modelRef = config.modelRef;
+    putBody.modelRef = config.modelRef;
   }
 
   if (config.tools && config.tools.length > 0) {
-    patchBody.spec.tools = config.tools;
+    putBody.tools = config.tools;
   }
 
-  // Only proceed if we have something to patch
-  if (Object.keys(patchBody.spec).length === 0) {
+  // Only proceed if we have something to update
+  if (Object.keys(putBody).length === 0) {
     return;
   }
 
   const requestOptions: any = {
-    method: "PATCH",
-    url: `${baseUrl}/v1/namespaces/${namespace}/agents/${agentName}`,
+    method: "PUT",
+    url: `${baseUrl}/v1/agents/${agentName}`,
     headers: {
       "Content-Type": "application/json",
     },
-    body: patchBody,
+    body: putBody,
     json: true,
   };
 
