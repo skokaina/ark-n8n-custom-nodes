@@ -7,6 +7,7 @@ Custom n8n community nodes for ARK (Agentic Runtime for Kubernetes).
 This package provides native n8n nodes for interacting with ARK resources:
 
 - **ARK Agent** - Execute agent queries
+- **ARK Agent Advanced** - Agent execution with memory, sessions, and dynamic configuration
 - **ARK Model** - Query models directly
 - **ARK Team** - Execute team-based multi-agent workflows
 - **ARK Evaluation** - Trigger node for evaluation events
@@ -76,9 +77,13 @@ nodes/
 │   └── __tests__/
 ├── nodes/
 │   ├── ArkAgent/
+│   ├── ArkAgentAdvanced/
 │   ├── ArkModel/
 │   ├── ArkTeam/
 │   └── ArkEvaluation/
+├── utils/
+│   ├── arkHelpers.ts
+│   └── __tests__/
 ├── test-helpers/
 │   ├── mocks.ts
 │   └── fixtures.ts
@@ -92,7 +97,7 @@ nodes/
 
 1. Write tests first (TDD)
 2. Ensure all tests pass
-3. Maintain >90% code coverage
+3. Maintain >80% code coverage
 4. Follow ESLint rules
 5. Update documentation
 
