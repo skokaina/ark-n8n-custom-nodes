@@ -506,9 +506,11 @@ describe("arkHelpers", () => {
       expect(mockContext.helpers.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: "PUT",
-          url: "http://ark-api:8000/v1/agents/test-agent",
+          url: "http://ark-api:8000/v1/agents/test-agent?namespace=default",
           body: {
-            modelRef: { name: "gpt-4", namespace: "default" },
+            spec: {
+              modelRef: { name: "gpt-4", namespace: "default" },
+            },
           },
         })
       );
