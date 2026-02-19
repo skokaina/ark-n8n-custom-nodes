@@ -24,6 +24,19 @@ export function getAuthHeader(credentials: {
 }
 
 /**
+ * Sanitize a string to be a valid Kubernetes label value.
+ * Strips leading/trailing characters that are not alphanumeric.
+ * Enforces the 63-character max length limit.
+ * Regex rule: (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
+ */
+export function sanitizeK8sLabel(value: string): string {
+  return value
+    .replace(/^[^A-Za-z0-9]+/, "")
+    .replace(/[^A-Za-z0-9]+$/, "")
+    .slice(0, 63);
+}
+
+/**
  * Get or generate session ID for conversation continuity
  */
 export function getSessionId(
@@ -43,7 +56,8 @@ export function getSessionId(
     sessionId = `n8n-${workflow.id}-${executionId}-${timestamp}`;
   }
 
-  return sessionId.trim();
+  // Strip leading/trailing chars that violate Kubernetes label rules
+  return sanitizeK8sLabel(sessionId.trim());
 }
 
 /**

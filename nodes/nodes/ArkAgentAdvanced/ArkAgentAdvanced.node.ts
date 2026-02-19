@@ -8,6 +8,7 @@ import {
 } from "n8n-workflow";
 import {
   getSessionId,
+  sanitizeK8sLabel,
   getAgentViaK8s,
   patchAgentViaK8s,
   postQuery,
@@ -239,12 +240,15 @@ export class ArkAgentAdvanced implements INodeType {
 
       // Get session ID from chat session (if available from input data)
       const itemData = items[i].json;
-      const chatSessionId =
-        itemData.sessionId ||
-        itemData.chatSessionId ||
-        itemData.session_id ||
-        itemData.chat_session_id ||
-        "unknown";
+      const chatSessionId = sanitizeK8sLabel(
+        String(
+          itemData.sessionId ||
+          itemData.chatSessionId ||
+          itemData.session_id ||
+          itemData.chat_session_id ||
+          "unknown"
+        )
+      );
 
       // Prepare query specification
       const queryName = `n8n-${agentName}-${Date.now()}`;
@@ -262,9 +266,9 @@ export class ArkAgentAdvanced implements INodeType {
             "ark.mckinsey.com/session-id": sessionId,
           },
           labels: {
-            n8n_workflow_name: workflowName,
-            n8n_workflow_id: workflow.id ?? "unknown",
-            n8n_execution_id: executionId,
+            n8n_workflow_name: sanitizeK8sLabel(workflowName),
+            n8n_workflow_id: sanitizeK8sLabel(workflow.id ?? "unknown"),
+            n8n_execution_id: sanitizeK8sLabel(executionId),
             n8n_agent_name: chatSessionId,
             n8n_session_id: sessionId,
           },

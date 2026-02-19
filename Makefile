@@ -103,10 +103,39 @@ e2e-create: ## Create new E2E environment from scratch
 	@echo "  Login: admin@example.com / Admin123!@#"
 	@echo "═══════════════════════════════════════════════════════"
 
-e2e-update: ## Update existing E2E environment (fast iteration)
-	@echo "Building Docker images..."
+deploy-local-setup: build ## First-time local deploy with testing values (restores proxy, use once then deploy-local)
+	@echo "Building Docker image..."
+	docker build -t ark-n8n:test .
+	@echo "Upgrading Helm release with testing values..."
+	helm upgrade ark-n8n ./chart \
+		-f chart/values-testing.yaml \
+		--set app.image.repository=ark-n8n \
+		--set app.image.tag=test \
+		--set app.image.pullPolicy=Never \
+		--set ark.apiUrl=http://ark-api.default.svc.cluster.local \
+		--wait
+	@echo "✓ Setup complete. Use 'make deploy-local' for subsequent deploys."
+	@echo "Access with auto-login: kubectl port-forward svc/ark-n8n-proxy 8080:80"
+
+deploy-local: build ## Build and deploy to local Kubernetes (OrbStack-friendly, no k3d import)
+	@HASH=$$(git rev-parse --short=4 HEAD); \
+	TAG="test-$$HASH"; \
+	echo "Building Docker image ark-n8n:$$TAG..."; \
+	docker build --no-cache -t "ark-n8n:$$TAG" .; \
+	echo "Upgrading Helm release..."; \
+	helm upgrade ark-n8n ./chart \
+		--reuse-values \
+		--set app.image.repository=ark-n8n \
+		--set "app.image.tag=$$TAG" \
+		--set app.image.pullPolicy=Never \
+		--wait; \
+	echo "✓ Deployed ark-n8n:$$TAG to local cluster"
+
+e2e-update: ## Update existing k3d E2E environment (fast iteration)
+	@echo "Building Docker image..."
 	cd nodes && npm run build && cd ..
 	docker build -t ark-n8n:test .
+	@echo "Importing image into k3d cluster..."
 	k3d image import ark-n8n:test -c ark-test
 	@echo "Building MCP server image..."
 	cd mcp-server && docker build -t ark-n8n-mcp:test .
@@ -383,6 +412,7 @@ clean: ## Clean build artifacts
 	rm -rf e2e/playwright-report
 	rm -rf e2e/test-results
 	@echo "✓ Clean complete"
+
 
 dev: ## Start DevSpace development environment
 	@echo "Starting DevSpace..."

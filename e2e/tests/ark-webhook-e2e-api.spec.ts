@@ -280,7 +280,7 @@ test.describe('ARK Webhook E2E Test', () => {
     delete workflowData.updatedAt;
     delete workflowData.tags;
 
-    // Import workflow via REST API using API key
+    // Import workflow via REST API
     const importResponse = await page.request.post(`${N8N_URL}/api/v1/workflows`, {
       data: workflowData,
       headers: {
@@ -514,12 +514,10 @@ test.describe('ARK Webhook E2E Test', () => {
     console.log('\n🧹 Cleanup...\n');
 
     // Clean up workflow if it was created
-    if (workflowId && process.env.N8N_API_KEY) {
+    if (workflowId) {
       try {
         await request.delete(`${N8N_URL}/api/v1/workflows/${workflowId}`, {
-          headers: {
-            'X-N8N-API-KEY': process.env.N8N_API_KEY
-          }
+          headers: { 'X-N8N-API-KEY': process.env.N8N_API_KEY || '' }
         });
         console.log('✓ Workflow deleted');
       } catch (error) {

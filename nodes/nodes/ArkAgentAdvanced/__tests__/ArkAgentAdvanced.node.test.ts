@@ -2,7 +2,7 @@ import { ArkAgentAdvanced } from "../ArkAgentAdvanced.node";
 import { createMockExecuteFunctions } from "../../../test-helpers/mocks";
 import * as arkHelpers from "../../../utils/arkHelpers";
 
-// Mock the arkHelpers module but keep extractResponseContent real
+// Mock the arkHelpers module but keep pure functions real
 jest.mock("../../../utils/arkHelpers", () => {
   const actual = jest.requireActual("../../../utils/arkHelpers");
   return {
@@ -10,6 +10,7 @@ jest.mock("../../../utils/arkHelpers", () => {
       Object.keys(actual).map((key) => [key, jest.fn()])
     ),
     extractResponseContent: actual.extractResponseContent,
+    sanitizeK8sLabel: actual.sanitizeK8sLabel,
   };
 });
 
@@ -523,6 +524,110 @@ describe("ArkAgentAdvanced Node", () => {
       expect(result[0]).toHaveLength(2);
       expect(arkHelpers.postQuery).toHaveBeenCalledTimes(2);
       expect(arkHelpers.pollQueryStatus).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("execute() Method - Kubernetes label sanitization", () => {
+    const VALID_K8S_LABEL = /^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$|^$/;
+
+    function setupMocks() {
+      (arkHelpers.getSessionId as jest.Mock).mockReturnValue("valid-session");
+      (arkHelpers.extractMemoryRef as jest.Mock).mockResolvedValue(null);
+      (arkHelpers.postQuery as jest.Mock).mockResolvedValue(undefined);
+      (arkHelpers.pollQueryStatus as jest.Mock).mockResolvedValue({
+        status: { phase: "done", response: { content: "Response" } },
+      });
+    }
+
+    it("should sanitize all label values when input sessionId ends with underscore", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: { sessionId: "DAxdE2jq07BPew2wOGI1_" } }],
+        parameters: {
+          configMode: "static",
+          agent: "test-agent",
+          input: "Hello",
+          sessionId: "",
+          wait: true,
+          timeout: "30s",
+        },
+        credentials: { arkApi: { baseUrl: "http://ark-api:8000", namespace: "default" } },
+      });
+      setupMocks();
+
+      await node.execute.call(mockContext);
+
+      const querySpec = (arkHelpers.postQuery as jest.Mock).mock.calls[0][4];
+      const labels = querySpec.metadata.labels;
+      for (const [, value] of Object.entries(labels)) {
+        expect(String(value)).toMatch(VALID_K8S_LABEL);
+      }
+    });
+
+    it("should sanitize executionId used as label when it ends with underscore", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: {} }],
+        parameters: {
+          configMode: "static",
+          agent: "test-agent",
+          input: "Hello",
+          sessionId: "valid-session",
+          wait: true,
+          timeout: "30s",
+        },
+        executionId: "DAxdE2jq07BPew2wOGI1_",
+        credentials: { arkApi: { baseUrl: "http://ark-api:8000", namespace: "default" } },
+      });
+      setupMocks();
+
+      await node.execute.call(mockContext);
+
+      const querySpec = (arkHelpers.postQuery as jest.Mock).mock.calls[0][4];
+      expect(querySpec.metadata.labels.n8n_execution_id).toBe("DAxdE2jq07BPew2wOGI1");
+    });
+
+    it("should sanitize workflow id used as label when it ends with underscore", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: {} }],
+        parameters: {
+          configMode: "static",
+          agent: "test-agent",
+          input: "Hello",
+          sessionId: "valid-session",
+          wait: true,
+          timeout: "30s",
+        },
+        workflow: { id: "wf_abc_", name: "My Workflow" },
+        credentials: { arkApi: { baseUrl: "http://ark-api:8000", namespace: "default" } },
+      });
+      setupMocks();
+
+      await node.execute.call(mockContext);
+
+      const querySpec = (arkHelpers.postQuery as jest.Mock).mock.calls[0][4];
+      expect(querySpec.metadata.labels.n8n_workflow_id).toBe("wf_abc");
+    });
+
+    it("should sanitize workflow name ending with underscore used as label", async () => {
+      const mockContext = createMockExecuteFunctions({
+        inputData: [{ json: {} }],
+        parameters: {
+          configMode: "static",
+          agent: "test-agent",
+          input: "Hello",
+          sessionId: "",
+          wait: true,
+          timeout: "30s",
+        },
+        workflow: { name: "My Workflow " }, // trailing space → trailing _ after replace
+        credentials: { arkApi: { baseUrl: "http://ark-api:8000", namespace: "default" } },
+      });
+      setupMocks();
+
+      await node.execute.call(mockContext);
+
+      const querySpec = (arkHelpers.postQuery as jest.Mock).mock.calls[0][4];
+      const workflowNameLabel = querySpec.metadata.labels.n8n_workflow_name;
+      expect(workflowNameLabel).toMatch(VALID_K8S_LABEL);
     });
   });
 });
