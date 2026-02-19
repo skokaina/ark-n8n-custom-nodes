@@ -42,33 +42,58 @@ graph LR
 
 ---
 
+This package extends n8n with custom nodes that connect to ARK, enabling you to:
+- Build complex agentic applications reusing deployed resources on the ARK cluster
+- Execute AI agents and multi-agent teams from workflows
+- Reuse ARK models and evaluate response quality
 
 ## Quick Install
 
-**Prerequisites:** Kubernetes cluster with [ARK](https://mckinsey.github.io/agents-at-scale-ark/) installed, `kubectl`, Helm 3.x
+**Prerequisites:** Kubernetes cluster with [ARK installed](https://mckinsey.github.io/agents-at-scale-ark/), kubectl, Helm 3.x
+
+### One-Line Install
 
 ```bash
-# Production
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
+```
+
+**What gets installed:**
+- ✅ n8n with ARK custom nodes
+- ✅ Auto-login enabled (demo mode)
+- ✅ Nginx proxy (works with any domain automatically)
+- ✅ 1Gi persistent storage for workflows/credentials
+
+### Manual Install
+
+```bash
+# Latest version
 helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
 
-# Demo (with pre-configured credentials)
-helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
-  -f https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/chart/values-demo.yaml
+# Specific version
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --version 0.1.0
 ```
 
-**Demo credentials:** `admin@example.com` / `Admin123!@#`
+### Access n8n
 
+**Local (port-forward):**
 ```bash
-# Access n8n
-kubectl port-forward svc/ark-n8n 5678:5678
-# Open http://localhost:5678
+kubectl port-forward svc/ark-n8n-proxy 8080:80
+# Open http://localhost:8080
 ```
 
-**Configure credentials:** n8n UI → Settings → Credentials → Add Credential → ARK API → set URL to `http://ark-api.ark-system.svc.cluster.local`
+**Default credentials (demo mode):**
+- Email: `admin@example.com`
+- Password: `Admin123!@#`
+
+**Configure ARK API credentials:**
+1. n8n UI → Settings → Credentials → Add Credential → ARK API
+2. Enter ARK API URL: `http://ark-api.default.svc.cluster.local` (adjust namespace if needed)
+
+**Production deployment:** See [Production Guide](./docs/PRODUCTION.md) for domain setup, HTTPS, security hardening, and scaling.
 
 ---
 
-## Nodes
+## Custom Nodes
 
 ### ARK Agent
 Execute pre-configured ARK agents with simple queries.
@@ -112,7 +137,29 @@ Import from [`samples/n8n-workflows/`](./samples/n8n-workflows/):
 
 n8n UI → Workflows → Import from File → select a file above.
 
----
+
+## Quick Commands
+
+```bash
+
+# Local quick-install using cloned repo
+make quick-install
+
+# Access n8n
+kubectl port-forward svc/ark-n8n-proxy 8080:80
+
+# Development
+make dev
+
+# Testing
+make test                    # Unit tests
+make e2e-reset && make e2e   # E2E tests
+
+# Upgrade
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n --reuse-values
+```
+
+## Further Reading
 
 ## Documentation
 
@@ -127,7 +174,10 @@ n8n UI → Workflows → Import from File → select a file above.
 | [Troubleshooting](./docs/TROUBLESHOOTING.md) | Common issues and solutions |
 | [Release Process](./docs/RELEASE.md) | Versioning, publishing, changelog |
 
----
+### Reference
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Architecture](./CLAUDE.md)** - Project structure, technical decisions
+
 
 ## License
 

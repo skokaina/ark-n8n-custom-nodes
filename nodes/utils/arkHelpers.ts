@@ -1,4 +1,5 @@
 import { IExecuteFunctions } from "n8n-workflow";
+import { readFileSync } from "fs";
 
 /**
  * Build the Authorization header based on the configured auth scheme.
@@ -174,6 +175,126 @@ export async function extractMemoryRef(
 /**
  * Update ARK agent configuration via PATCH API
  */
+/**
+ * Get current ARK agent configuration via Kubernetes API
+ */
+export async function getAgentViaK8s(
+  context: IExecuteFunctions,
+  namespace: string,
+  agentName: string,
+): Promise<{
+  modelRef?: { name: string; namespace: string } | null;
+  tools?: Array<{ type: string; name: string }> | null;
+}> {
+  const token = readFileSync(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token",
+    "utf8",
+  );
+  const caPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+
+  const k8sHost =
+    process.env.KUBERNETES_SERVICE_HOST || "kubernetes.default.svc";
+  const k8sPort = process.env.KUBERNETES_SERVICE_PORT || "443";
+  const apiUrl = `https://${k8sHost}:${k8sPort}/apis/ark.mckinsey.com/v1alpha1/namespaces/${namespace}/agents/${agentName}`;
+
+  try {
+    const agent = await context.helpers.request({
+      method: "GET",
+      url: apiUrl,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      json: true,
+      agentOptions: {
+        ca: readFileSync(caPath),
+      },
+    });
+
+    return {
+      modelRef: agent.spec?.modelRef || null,
+      tools: agent.spec?.tools || null,
+    };
+  } catch (error: any) {
+    throw new Error(
+      `Failed to get agent via Kubernetes API: ${error.message}`,
+    );
+  }
+}
+
+/**
+ * Patch ARK agent directly via Kubernetes API (workaround for ARK API bug)
+ * The ARK API doesn't properly save modelRef.namespace, so we use Kubernetes API instead
+ */
+export async function patchAgentViaK8s(
+  context: IExecuteFunctions,
+  namespace: string,
+  agentName: string,
+  config: {
+    modelRef?: { name: string; namespace: string } | null;
+    tools?: Array<{ type: string; name: string }> | null;
+  },
+): Promise<void> {
+  console.log(
+    `[patchAgentViaK8s] Called with config:`,
+    JSON.stringify(config),
+  );
+
+  // Only proceed if we have something to update
+  // Check if config has any keys defined (even if they're null)
+  if (!("modelRef" in config) && !("tools" in config)) {
+    console.log(`[patchAgentViaK8s] No config fields to update, skipping`);
+    return;
+  }
+
+  // Build the patch - include fields even if they're null (to clear them)
+  const patch: any = { spec: {} };
+  if ("modelRef" in config) {
+    patch.spec.modelRef = config.modelRef;
+  }
+  if ("tools" in config) {
+    patch.spec.tools = config.tools;
+  }
+
+  console.log(`[patchAgentViaK8s] Patch payload:`, JSON.stringify(patch));
+
+  // Read Kubernetes service account token and CA cert
+  const token = readFileSync(
+    "/var/run/secrets/kubernetes.io/serviceaccount/token",
+    "utf8",
+  );
+  const caPath = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
+
+  // Kubernetes API server endpoint
+  const k8sHost =
+    process.env.KUBERNETES_SERVICE_HOST || "kubernetes.default.svc";
+  const k8sPort = process.env.KUBERNETES_SERVICE_PORT || "443";
+  const apiUrl = `https://${k8sHost}:${k8sPort}/apis/ark.mckinsey.com/v1alpha1/namespaces/${namespace}/agents/${agentName}`;
+
+  console.log(`[patchAgentViaK8s] Patching ${apiUrl}`);
+
+  try {
+    const response = await context.helpers.request({
+      method: "PATCH",
+      url: apiUrl,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/merge-patch+json",
+      },
+      body: patch,
+      json: true,
+      agentOptions: {
+        ca: readFileSync(caPath),
+      },
+    });
+    console.log(`[patchAgentViaK8s] Patch successful:`, response);
+  } catch (error: any) {
+    console.error(`[patchAgentViaK8s] Patch failed:`, error.message);
+    throw new Error(
+      `Failed to patch agent via Kubernetes API: ${error.message}`,
+    );
+  }
+}
+
 export async function patchAgent(
   context: IExecuteFunctions,
   baseUrl: string,
@@ -185,38 +306,56 @@ export async function patchAgent(
   },
 ): Promise<void> {
   const credentials = await context.getCredentials("arkApi");
-
-  const putBody: any = {};
-
-  if (config.modelRef) {
-    putBody.modelRef = config.modelRef;
-  }
-
-  if (config.tools && config.tools.length > 0) {
-    putBody.tools = config.tools;
-  }
+  const authHeader = getAuthHeader(credentials as any);
 
   // Only proceed if we have something to update
-  if (Object.keys(putBody).length === 0) {
+  if (!config.modelRef && (!config.tools || config.tools.length === 0)) {
     return;
   }
 
-  const requestOptions: any = {
-    method: "PUT",
-    url: `${baseUrl}/v1/agents/${agentName}`,
+  // Step 1: GET the current agent
+  const getOptions: any = {
+    method: "GET",
+    url: `${baseUrl}/v1/agents/${agentName}?namespace=${namespace}`,
     headers: {
       "Content-Type": "application/json",
     },
-    body: putBody,
     json: true,
   };
-
-  const authHeader = getAuthHeader(credentials as any);
   if (authHeader) {
-    requestOptions.headers.Authorization = authHeader;
+    getOptions.headers.Authorization = authHeader;
   }
 
-  await context.helpers.request(requestOptions);
+  const currentAgent = await context.helpers.request(getOptions);
+
+  // Step 2: Merge our changes into the agent spec
+  if (!currentAgent.spec) {
+    currentAgent.spec = {};
+  }
+
+  if (config.modelRef) {
+    currentAgent.spec.modelRef = config.modelRef;
+  }
+
+  if (config.tools && config.tools.length > 0) {
+    currentAgent.spec.tools = config.tools;
+  }
+
+  // Step 3: PUT the complete agent back
+  const putOptions: any = {
+    method: "PUT",
+    url: `${baseUrl}/v1/agents/${agentName}?namespace=${namespace}`,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: { spec: currentAgent.spec },
+    json: true,
+  };
+  if (authHeader) {
+    putOptions.headers.Authorization = authHeader;
+  }
+
+  await context.helpers.request(putOptions);
 }
 
 /**

@@ -371,7 +371,7 @@ describe("arkHelpers", () => {
   });
 
   describe("patchAgent", () => {
-    it("should PUT agent with model and tools using flat AgentUpdateRequest body", async () => {
+    it("should GET then PUT agent with model and tools (read-modify-write)", async () => {
       const mockContext = createMockExecuteFunctions({
         credentials: {
           arkApi: {
@@ -392,10 +392,12 @@ describe("arkHelpers", () => {
       expect(mockContext.helpers.request).toHaveBeenCalledWith(
         expect.objectContaining({
           method: "PUT",
-          url: "http://ark-api:8000/v1/agents/test-agent",
+          url: "http://ark-api:8000/v1/agents/test-agent?namespace=default",
           body: {
-            modelRef: { name: "gpt-4", namespace: "default" },
-            tools: [{ type: "builtin", name: "web-search" }],
+            spec: {
+              modelRef: { name: "gpt-4", namespace: "default" },
+              tools: [{ type: "builtin", name: "web-search" }],
+            },
           },
           json: true,
         })

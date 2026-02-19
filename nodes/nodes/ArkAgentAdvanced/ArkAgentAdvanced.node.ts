@@ -9,7 +9,8 @@ import {
 import {
   getSessionId,
   sanitizeK8sLabel,
-  patchAgent,
+  getAgentViaK8s,
+  patchAgentViaK8s,
   postQuery,
   pollQueryStatus,
   extractModelRef,
@@ -37,18 +38,27 @@ export class ArkAgentAdvanced implements INodeType {
         type: "ai_languageModel",
         required: false,
         maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkModel"],
+        },
       },
       {
         displayName: "Memory",
         type: "ai_memory",
         required: false,
         maxConnections: 1,
+        filter: {
+          nodes: ["CUSTOM.arkMemory"],
+        },
       },
       {
         displayName: "Tools",
         type: "ai_tool",
         required: false,
         maxConnections: 10,
+        filter: {
+          nodes: ["CUSTOM.arkTool", "CUSTOM.arkAgentTool", "CUSTOM.arkWorkflowTool"],
+        },
       },
     ],
     outputs: ["main"],
@@ -175,21 +185,43 @@ export class ArkAgentAdvanced implements INodeType {
       // Extract memory from connected sub-node
       const memoryRef = await extractMemoryRef(this, i);
 
+      // Save original agent configuration (for restoration after execution)
+      let originalConfig: {
+        modelRef?: { name: string; namespace: string } | null;
+        tools?: Array<{ type: string; name: string }> | null;
+      } | null = null;
+
       // Dynamic mode: Update agent configuration from sub-nodes
       if (configMode === "dynamic") {
+        console.log("[ArkAgentAdvanced] In dynamic mode");
         try {
+          // Save original configuration before making changes
+          console.log("[ArkAgentAdvanced] Saving original agent config");
+          originalConfig = await getAgentViaK8s(this, namespace, agentName);
+          console.log(
+            "[ArkAgentAdvanced] Original config:",
+            JSON.stringify(originalConfig),
+          );
+
           // Extract model configuration from connected model node
           const modelRef = await extractModelRef(this, i);
+          console.log("[ArkAgentAdvanced] Extracted modelRef:", modelRef);
 
           // Extract tools configuration from connected tool nodes
           const tools = await extractToolsConfig(this, i);
+          console.log("[ArkAgentAdvanced] Extracted tools:", tools);
 
           // Patch agent if we have model or tools to update
           if (modelRef || (tools && tools.length > 0)) {
-            await patchAgent(this, baseUrl, namespace, agentName, {
+            console.log("[ArkAgentAdvanced] Calling patchAgentViaK8s");
+            await patchAgentViaK8s(this, namespace, agentName, {
               modelRef,
               tools,
             });
+          } else {
+            console.log(
+              "[ArkAgentAdvanced] Skipping patch - no modelRef or tools",
+            );
           }
         } catch (error: any) {
           throw new Error(
@@ -306,6 +338,26 @@ export class ArkAgentAdvanced implements INodeType {
           continue;
         }
         throw new Error(`Query execution failed: ${error.message}`);
+      } finally {
+        // Restore original agent configuration if it was modified
+        if (configMode === "dynamic" && originalConfig) {
+          try {
+            console.log(
+              "[ArkAgentAdvanced] Restoring original agent config",
+            );
+            await patchAgentViaK8s(this, namespace, agentName, originalConfig);
+            console.log(
+              "[ArkAgentAdvanced] Original config restored successfully",
+            );
+          } catch (restoreError: any) {
+            console.error(
+              "[ArkAgentAdvanced] Failed to restore original config:",
+              restoreError.message,
+            );
+            // Don't throw here - the query already completed or failed
+            // Just log the restore failure
+          }
+        }
       }
     }
 

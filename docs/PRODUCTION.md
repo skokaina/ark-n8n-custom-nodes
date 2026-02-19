@@ -1,11 +1,210 @@
 # Production Guide
 
+This guide covers deploying ARK n8n in production with security, monitoring, scaling, and high availability.
+
+## Quick Production Setup
+
+### Prerequisites
+- Kubernetes cluster with ARK installed
+- kubectl and Helm 3.x configured
+- LoadBalancer or Ingress controller
+- (Optional) cert-manager for HTTPS
+
+### Installation
+
+**One-line install:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/skokaina/ark-n8n-custom-nodes/main/install.sh | bash
+```
+
+**Or with Helm:**
+```bash
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n
+```
+
+### Disable Demo Mode
+
+**CRITICAL for production - disable auto-login:**
+```bash
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set demo.enabled=false \
+  --reuse-values
+```
+
+After disabling demo mode, create your admin account via the n8n UI on first access.
+
+### Domain Configuration
+
+**The nginx proxy auto-configures for any domain!**
+
+1. **Configure LoadBalancer or Ingress:**
+   ```yaml
+   # Point to the nginx proxy service
+   Service: ark-n8n-proxy
+   Port: 80
+   ```
+
+2. **Set DNS:**
+   ```bash
+   # Point your domain to the LoadBalancer IP
+   n8n.example.com → <LoadBalancer-IP>
+   ```
+
+3. **Done!**
+   - The proxy automatically adapts to your domain
+   - No N8N_HOST configuration needed
+   - Works with HTTP or HTTPS
+
+**Example LoadBalancer:**
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ark-n8n-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/component: proxy
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+  - port: 443
+    targetPort: 8080
+    name: https
+```
+
+**Example Ingress:**
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ark-n8n-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - n8n.example.com
+    secretName: n8n-tls
+  rules:
+  - host: n8n.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ark-n8n-proxy
+            port:
+              number: 80
+```
+
+### Enable HTTPS (Recommended)
+
+**Option 1: cert-manager (automatic certificates)**
+```bash
+# Install cert-manager
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+
+# Create ClusterIssuer
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@example.com
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+EOF
+
+# Ingress will automatically get certificates
+```
+
+**Option 2: AWS ACM (for AWS LoadBalancer)**
+```yaml
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:..."
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+```
+
+**Option 3: Existing certificates**
+```bash
+kubectl create secret tls n8n-tls \
+  --cert=path/to/cert.pem \
+  --key=path/to/key.pem
+```
+
+### Storage Management
+
+**Default configuration:**
+- 1Gi PVC (always enabled)
+- Stores workflows, credentials, and execution history
+- Automatically created on install
+
+**Resize storage:**
+```bash
+# Method 1: Edit PVC directly
+kubectl edit pvc ark-n8n-pvc
+
+# Method 2: During install
+helm install ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set storage.size=10Gi
+
+# Method 3: Upgrade existing deployment
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set storage.size=10Gi \
+  --reuse-values
+```
+
+**Monitor storage usage:**
+```bash
+kubectl exec deployment/ark-n8n -- df -h /home/node/.n8n
+```
+
+### Quick Security Checklist
+
+After installation:
+- ✅ Disable demo mode (`--set demo.enabled=false`)
+- ✅ Create admin account via n8n UI
+- ✅ Enable HTTPS with valid certificates
+- ✅ Use strong passwords (12+ characters)
+- ✅ Configure 2FA in n8n settings (if available)
+- ✅ Restrict network access via NetworkPolicies
+- ✅ Set up regular backups (see [Backup Strategy](#backup-strategy))
+
+---
+
 ## Security
 
 ### Authentication
 
-**Enable n8n authentication:**
+**Production authentication (recommended):**
 
+```bash
+# Disable demo mode to enable proper authentication
+helm upgrade ark-n8n oci://ghcr.io/skokaina/charts/ark-n8n \
+  --set demo.enabled=false \
+  --reuse-values
+```
+
+After disabling demo mode, n8n will prompt you to create an owner account on first access with:
+- Email address
+- Strong password (12+ characters)
+- Optional 2FA setup
+
+**Legacy basic auth (not recommended):**
 ```yaml
 app:
   env:
@@ -14,7 +213,11 @@ app:
     N8N_BASIC_AUTH_PASSWORD: "secure-password"
 ```
 
-Or on first access, create owner account via n8n UI.
+**User management:**
+- Owner account created on first access
+- Add additional users via Settings → Users
+- Configure role-based permissions
+- Enable 2FA for all users (Settings → Security)
 
 ### HTTPS/TLS
 

@@ -1,0 +1,125 @@
+{
+  "name": "ARK Agent Tool Demo",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "id": "manual-trigger"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "input",
+              "value": "Hello! Can you tell me a short joke about programming?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [460, 300],
+      "id": "set-input"
+    },
+    {
+      "parameters": {
+        "agentName": "test-agent",
+        "namespace": "default",
+        "timeout": "60s",
+        "memory": "",
+        "sessionId": ""
+      },
+      "name": "ARK Agent Tool",
+      "type": "CUSTOM.arkAgentTool",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "id": "ark-agent-tool",
+      "credentials": {
+        "arkApi": {
+          "id": "1",
+          "name": "ARK API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "agent_response",
+              "value": "={{ $json.response }}"
+            },
+            {
+              "name": "query_name",
+              "value": "={{ $json.queryName }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "duration",
+              "value": "={{ $json.duration }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [900, 300],
+      "id": "format-output"
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Prepare Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Input": {
+      "main": [
+        [
+          {
+            "node": "ARK Agent Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ARK Agent Tool": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-10T00:00:00.000Z",
+  "versionId": "1"
+}

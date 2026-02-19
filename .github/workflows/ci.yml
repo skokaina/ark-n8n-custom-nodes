@@ -129,12 +129,12 @@ jobs:
           cache-to: |
             type=gha,mode=max
 
-  # Step 3: E2E Tests (only on main branch, only if build passes)
+  # Step 3: E2E Tests (on main branch and PRs to main, only if build passes)
   e2e:
     name: E2E Tests
     runs-on: ubuntu-24.04
     needs: [build]
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main')
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -271,6 +271,10 @@ jobs:
           echo "✓ nginx proxy deployment ready"
 
           kubectl get pods
+
+          echo "=== n8n environment variables ==="
+          kubectl exec deployment/ark-n8n -- env | grep -E "N8N_USER_MANAGEMENT|N8N_BASIC_AUTH|N8N_PERSONALIZATION" || echo "Auth env vars not found!"
+
           kubectl logs deployment/ark-n8n --tail=50
 
       - name: Install Playwright

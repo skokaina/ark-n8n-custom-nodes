@@ -1,0 +1,47 @@
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.app.name }}-mcp-tools
+  labels:
+    app: {{ .Values.app.name }}
+data:
+  tools.json: |
+    {
+      "tools": [
+        {
+          "name": "calculator",
+          "description": "Perform mathematical calculations. Input should be a valid mathematical expression like '2 + 2' or '25 * 42'.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "expression": {
+                "type": "string",
+                "description": "Mathematical expression to evaluate (e.g., '2 + 2', '25 * 42', '(10 + 5) * 3')"
+              }
+            },
+            "required": ["expression"]
+          },
+          "webhookPath": "/webhook/tool/calculator",
+          "method": "POST"
+        },
+        {
+          "name": "get_weather",
+          "description": "Get current weather information for a specific location or city.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "City name or location to get weather for (e.g., 'New York', 'London', 'Tokyo')"
+              }
+            },
+            "required": ["location"]
+          },
+          "webhookPath": "/webhook/tool/weather",
+          "method": "POST"
+        }
+      ],
+      "lastUpdated": "{{ now | date "2006-01-02T15:04:05Z07:00" }}"
+    }
+{{- end }}

@@ -5,6 +5,8 @@ import {
   INodePropertyOptions,
   INodeType,
   INodeTypeDescription,
+  ISupplyDataFunctions,
+  SupplyData,
 } from "n8n-workflow";
 
 export class ArkModel implements INodeType {
@@ -19,7 +21,12 @@ export class ArkModel implements INodeType {
       name: "ARK Model",
     },
     inputs: ["main"],
-    outputs: ["main"],
+    outputs: [
+      {
+        displayName: "Model",
+        type: "ai_languageModel",
+      },
+    ],
     credentials: [
       {
         name: "arkApi",
@@ -91,6 +98,24 @@ export class ArkModel implements INodeType {
       },
     },
   };
+
+  async supplyData(
+    this: ISupplyDataFunctions,
+    itemIndex: number,
+  ): Promise<SupplyData> {
+    const modelName = this.getNodeParameter("model", itemIndex) as string;
+    const _credentials = await this.getCredentials("arkApi");
+
+    // Return model configuration data for ARK Agent Advanced to use
+    return {
+      response: {
+        model: modelName,
+        modelName: modelName,
+        name: modelName,
+        namespace: "default",
+      },
+    };
+  }
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
     const items = this.getInputData();

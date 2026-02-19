@@ -20,6 +20,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.new_version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,3 +126,23 @@ jobs:
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/v${{ steps.current_version.outputs.version }}...v${{ steps.new_version.outputs.version }}
           draft: false
           prerelease: false
+
+  # Build and push Docker images
+  build:
+    needs: release
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    permissions:
+      contents: read
+      packages: write
+
+  # Publish Helm chart
+  helm:
+    needs: release
+    uses: ./.github/workflows/helm.yml
+    with:
+      version: ${{ needs.release.outputs.version }}
+    permissions:
+      contents: read
+      packages: write

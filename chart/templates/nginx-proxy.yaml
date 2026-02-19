@@ -17,13 +17,9 @@ data:
         server {{ include "ark-n8n.fullname" . }}:{{ .Values.service.port }};
       }
 
-      # Map to set CORS origin dynamically
+      # Map to set CORS origin dynamically - permissive for demo mode
       map $http_origin $cors_origin {
-        default "";
-        "~^http://localhost(:[0-9]+)?$" $http_origin;
-        "~^http://127\.0\.0\.1(:[0-9]+)?$" $http_origin;
-        "~^http://.*\.127\.0\.0\.1\.nip\.io$" $http_origin;
-        "~^http://ark-n8n.*\.nip\.io$" $http_origin;
+        default $http_origin;  # Allow any origin for demo flexibility
       }
 
       server {
@@ -41,6 +37,13 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Critical: Set Origin header that n8n expects (matches N8N_EDITOR_BASE_URL)
+        # Uses the actual request scheme and host for idempotent deployment
+        proxy_set_header Origin $scheme://$http_host;
+
+        proxy_set_header Content-Type $http_content_type;
+        proxy_set_header Content-Length $http_content_length;
 
         # Timeouts for WebSocket and long-running workflows
         proxy_connect_timeout 3600s;
@@ -178,81 +181,75 @@ data:
       </div>
 
       <script>
-        // Auto-login using n8n API
+        // Smart auto-login: tries API, falls back to UI setup/signin
         async function autoLogin() {
           try {
-            // First check if user management is disabled (test mode)
-            document.getElementById('status').textContent = 'Checking authentication...';
+            document.getElementById('status').textContent = 'Logging in...';
 
-            const settingsResponse = await fetch('/rest/settings', {
-              credentials: 'include'
+            // Try API login with 15s timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+            const loginResponse = await fetch('/rest/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                emailOrLdapLoginId: '{{ .Values.demo.email }}',
+                password: '{{ .Values.demo.password }}'
+              }),
+              credentials: 'include',
+              signal: controller.signal
             });
 
-            if (settingsResponse.ok) {
-              const settings = await settingsResponse.json();
+            clearTimeout(timeoutId);
 
-              // If owner is not set up yet, create the owner account
-              // Note: Creating the owner automatically logs you in
-              if (settings.isInstanceOwnerSetUp === false) {
-                document.getElementById('status').textContent = 'Setting up demo account...';
+            if (loginResponse.ok) {
+              document.getElementById('status').textContent = 'Success! Redirecting...';
+              setTimeout(() => {
+                window.location.href = '/workflows';
+              }, 500);
+              return;
+            }
 
-                const setupResponse = await fetch('/rest/owner', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    email: '{{ .Values.demo.email }}',
-                    password: '{{ .Values.demo.password }}',
-                    firstName: 'Demo',
-                    lastName: 'User',
-                    agreedToLicense: true
-                  }),
-                  credentials: 'include'
-                });
+            // API login failed - check if owner exists
+            console.warn('API login failed, checking if owner exists...');
+            throw new Error(`Login failed: ${loginResponse.status}`);
 
-                if (setupResponse.ok) {
-                  // Owner creation automatically logs you in
-                  document.getElementById('status').textContent = 'Account created! Redirecting...';
-                  setTimeout(() => {
-                    window.location.href = '/workflows';
-                  }, 1000);
-                  return;
-                } else {
-                  console.error('Owner setup failed:', await setupResponse.text());
-                }
-              }
+          } catch (error) {
+            console.error('Auto-login error:', error);
 
-              // Owner already exists, try normal login
-              document.getElementById('status').textContent = 'Logging in...';
+            // Check if this is a new instance (no owner) or existing instance
+            try {
+              document.getElementById('status').textContent = 'Checking instance status...';
 
-              const loginResponse = await fetch('/rest/login', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  email: '{{ .Values.demo.email }}',
-                  password: '{{ .Values.demo.password }}'
-                }),
+              const settingsResponse = await fetch('/rest/settings', {
                 credentials: 'include'
               });
 
-              if (loginResponse.ok) {
-                document.getElementById('status').textContent = 'Success! Redirecting...';
-                setTimeout(() => {
-                  window.location.href = '/workflows';
-                }, 500);
-              } else {
-                throw new Error(`Login failed: ${loginResponse.status}`);
+              if (settingsResponse.ok) {
+                const settings = await settingsResponse.json();
+
+                // Check if owner needs to be set up
+                if (settings.data?.userManagement?.showSetupOnFirstLoad === true) {
+                  // No owner - redirect to setup page
+                  document.getElementById('status').textContent = 'Redirecting to setup...';
+                  setTimeout(() => {
+                    window.location.href = '/setup';
+                  }, 1000);
+                  return;
+                }
               }
-            } else {
-              throw new Error(`Cannot access settings: ${settingsResponse.status}`);
+            } catch (settingsError) {
+              console.error('Settings check failed:', settingsError);
             }
-          } catch (error) {
-            console.error('Auto-login failed:', error);
-            document.getElementById('status').innerHTML =
-              '⚠️ Auto-login failed. <a href="/signin">Click here</a> to login manually.';
+
+            // Owner exists but API login failed - redirect to manual login
+            document.getElementById('status').textContent = 'Redirecting to login...';
+            setTimeout(() => {
+              window.location.href = '/signin';
+            }, 1500);
           }
         }
 

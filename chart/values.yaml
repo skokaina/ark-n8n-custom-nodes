@@ -8,13 +8,14 @@ app:
   port: 5678
 
   env:
-    N8N_HOST: ark-n8n.default.127.0.0.1.nip.io
+    # Simple localhost defaults - works with port-forward or LoadBalancer
+    N8N_HOST: localhost:8080
     N8N_PORT: "5678"
     N8N_PROTOCOL: http
     N8N_SECURE_COOKIE: "false"
     N8N_PROXY_HOPS: "1"
-    N8N_EDITOR_BASE_URL: http://ark-n8n.default.127.0.0.1.nip.io
-    WEBHOOK_URL: http://ark-n8n.default.127.0.0.1.nip.io
+    N8N_EDITOR_BASE_URL: http://localhost:8080
+    WEBHOOK_URL: http://localhost:8080
     N8N_PUSH_BACKEND: websocket
     GENERIC_TIMEZONE: America/New_York
     N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
@@ -24,11 +25,10 @@ app:
     EXECUTIONS_DATA_SAVE_ON_ERROR: "all"
 
     # Authentication settings
-    # For production: keep N8N_BASIC_AUTH_ACTIVE=true and set credentials
-    # For testing/demos: set N8N_BASIC_AUTH_ACTIVE=false to disable login
-    N8N_BASIC_AUTH_ACTIVE: "true"
-    # N8N_BASIC_AUTH_USER: "admin"
-    # N8N_BASIC_AUTH_PASSWORD: "changeme"
+    # For production: enable user management and create owner account
+    # For testing/demos: see chart/values-demo.yaml
+    N8N_BASIC_AUTH_ACTIVE: "false"
+    N8N_USER_MANAGEMENT_DISABLED: "false"
 
 ark:
   apiUrl: http://ark-api.default.svc.cluster.local:80
@@ -43,6 +43,44 @@ ark:
       cpu: 250m
       memory: 256Mi
 
+mcp:
+  enabled: false  # Disabled by default - enable if you need MCP tool access
+  image:
+    repository: ghcr.io/skokaina/ark-n8n-mcp
+    pullPolicy: IfNotPresent
+    tag: latest
+  port: 8080
+  # n8n connection settings
+  n8nUrl: "http://localhost:5678"  # Base URL for n8n webhooks (configurable per environment)
+  env:
+    PORT: "8080"
+    TOOLS_SHARED_PATH: /tmp/tools
+    # N8N_INTERNAL_URL is set from mcp.n8nUrl in deployment template
+    # N8N_API_KEY is set from n8nApiKey secret if configured
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# n8n API authentication (REQUIRED)
+# n8n always requires API key for endpoint authentication
+# For production: Create secret manually and reference with existingSecret
+# For testing: Can use create=true with --set (not recommended for production)
+n8nApiKey:
+  # Create secret from Helm values (NOT recommended for production)
+  create: false
+  value: ""  # Set via --set n8nApiKey.value="your-key" for testing only
+
+  # Use existing secret (RECOMMENDED for production)
+  # kubectl create secret generic n8n-api-key --from-literal=api-key="your-key"
+  existingSecret: ""  # Name of existing secret containing 'api-key' key
+
+  # Secret name to use if create=true
+  secretName: "n8n-api-key"
+
 storage:
   enabled: true
   size: 1Gi
@@ -50,8 +88,15 @@ storage:
   accessMode: ReadWriteOnce
   mountPath: /home/node/.n8n
 
-httpRoute:
+# Enable demo mode with nginx proxy for easy setup (recommended for quickstart)
+demo:
   enabled: true
+  email: "admin@example.com"
+  password: "Admin123!@#"
+
+# HTTPRoute for advanced setups with Gateway API (optional)
+httpRoute:
+  enabled: false  # Disabled by default - enable if you have Gateway API configured
   gateway:
     name: localhost-gateway
     namespace: ark-system

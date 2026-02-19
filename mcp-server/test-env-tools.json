@@ -1,0 +1,28 @@
+{
+  "tools": [
+    {
+      "name": "test_webhook",
+      "description": "Test tool with webhookPath",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "message": {"type": "string"}
+        }
+      },
+      "webhookPath": "/webhook/tool/test",
+      "method": "POST"
+    },
+    {
+      "name": "test_full_url",
+      "description": "Test tool with full executionEndpoint",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "data": {"type": "string"}
+        }
+      },
+      "executionEndpoint": "https://httpbin.org/post",
+      "method": "POST"
+    }
+  ]
+}

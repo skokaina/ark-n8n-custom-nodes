@@ -5,6 +5,7 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
     'credentials/**/*.ts',
+    '!credentials/N8nApi.credentials.ts',
     'nodes/**/*.ts',
     '!**/__tests__/**',
     '!**/node_modules/**',

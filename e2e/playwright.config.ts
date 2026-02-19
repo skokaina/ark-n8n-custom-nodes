@@ -17,7 +17,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  timeout: 60000, // 60 seconds per test
+  timeout: 180000, // 3 minutes per test (90s auto-login + test execution)
   expect: {
     timeout: 10000,
   },
