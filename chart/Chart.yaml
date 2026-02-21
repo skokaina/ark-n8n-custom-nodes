@@ -2,8 +2,8 @@ apiVersion: v2
 name: ark-n8n
 description: A Helm chart for deploying n8n with ARK custom nodes
 type: application
-version: 0.3.0
-appVersion: 0.3.0
+version: 0.3.1
+appVersion: 0.3.1
 keywords:
   - n8n
   - workflow
